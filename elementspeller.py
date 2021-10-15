@@ -37,7 +37,7 @@ def findSymbols(phrase):
 	for word in splitted:
 		res.append(findSymbolsHelper(word,phrase))
 	return (" ".join(res))
-word = input("word to element spell?: ")
-print (findSymbols(word))
+phrase = input("phrase to element spell?: ")
+print (findSymbols(phrase))
 
 
