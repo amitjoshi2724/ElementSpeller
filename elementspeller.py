@@ -15,7 +15,7 @@ def findSymbolsHelper(word,phrase):
 	dp = [None] * (len(word) + 1)
 	dp[-1] = ("", None)
 	for i in range(len(word)-1, -1,-1):
-		for endIndex in range(i + 1, min(len(dp), i + 1 + 3)):
+		for endIndex in range(i + 1, min(len(dp), i + 1 + 2)):
 			substring = word[i:endIndex]
 			if tfdp[endIndex] == True and substring in symbolDict:
 				dp[i] = (symbolDict[substring], endIndex)
