@@ -6,6 +6,8 @@
     <title>Element Speller</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2025.2.4/core.css">
     <script type="module" src="https://pyscript.net/releases/2025.2.4/core.js"></script>
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <style>
         body {
             font-family: 'Comic Sans MS', cursive, sans-serif;
@@ -56,10 +58,16 @@
             font-size: 24px;
             color: #4b0082;
             min-height: 50px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
         }
         .element {
             display: inline-block;
-            margin: 5px;
+            margin: 3px;
             padding: 8px;
             border-radius: 5px;
             background-color: #e6e6fa;
@@ -68,6 +76,7 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
+            font-size: 28px;
         }
         .element:hover {
             transform: translateY(-3px);
@@ -83,6 +92,8 @@
             margin-bottom: 10px;
         }
         .word {
+            display: inline-flex;
+            margin-right: 10px;
             margin-bottom: 10px;
         }
         #loading {
@@ -134,7 +145,7 @@
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px dashed #d8bfd8;
-            font-size: 14px;
+            font-size: 18px;
             color: #8a2be2;
         }
         .credits a {
@@ -142,6 +153,7 @@
             text-decoration: none;
             font-weight: bold;
             transition: color 0.2s;
+            font-size: 20px;
         }
         .credits a:hover {
             color: #9370db;
@@ -150,7 +162,28 @@
         .algorithm {
             font-style: italic;
             margin-top: 5px;
-            font-size: 12px;
+            font-size: 16px;
+        }
+        .plain-word {
+            display: inline-block;
+            margin: 3px;
+            padding: 8px;
+            border-radius: 5px;
+            background-color: #f8f8ff;
+            color: #666666;
+            font-style: italic;
+            font-size: 28px;
+        }
+        .phrase-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+        .active-element {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: #d8bfd8;
         }
     </style>
 </head>
@@ -180,6 +213,12 @@
 <script type="py">
 from pyscript import document
 from pyodide.ffi import create_proxy
+
+# Function to handle Enter key press
+def handle_enter_key(event):
+    if event.key == "Enter":
+        # Trigger the spell_phrase function
+        spell_phrase(event)
 
 symbols = "H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn" + \
 " Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb" + \
@@ -346,13 +385,22 @@ def findSymbols(phrase):
     for word in splitted:
         elements = findSymbolsHelper(word, phrase)
         if elements is None:
-            return None, word
-        results.append(elements)
-    return results, None
+            results.append({"word": word, "spellable": False})
+        else:
+            results.append({"word": word, "spellable": True, "elements": elements})
+    return results
 
 def show_element_details(event):
     element_symbol = event.target.textContent
     details_div = document.querySelector("#element-details")
+    
+    # Clear any existing active elements
+    active_elements = document.querySelectorAll(".active-element")
+    for el in active_elements:
+        el.classList.remove("active-element")
+    
+    # Mark this element as active
+    event.target.classList.add("active-element")
     
     if element_symbol in element_data:
         element_info = element_data[element_symbol]
@@ -365,10 +413,36 @@ def show_element_details(event):
         '''
         details_div.classList.add("active")
 
+def show_plain_word_message(event):
+    word = event.target.textContent
+    details_div = document.querySelector("#element-details")
+    
+    # Clear any existing active elements
+    active_elements = document.querySelectorAll(".active-element")
+    for el in active_elements:
+        el.classList.remove("active-element")
+    
+    # Mark this element as active
+    event.target.classList.add("active-element")
+    
+    details_div.innerHTML = f'''
+    <div class="big-element">
+        <div class="element-name">"{word}"</div>
+        <div class="element-number">This word cannot be spelled using chemical element symbols</div>
+    </div>
+    '''
+    details_div.classList.add("active")
+
 def hide_element_details(event):
     details_div = document.querySelector("#element-details")
     details_div.classList.remove("active")
     details_div.innerHTML = '<span class="placeholder-text">Hover over an element to see details</span>'
+    
+    # Only remove active class if we're not clicking/tapping
+    if event.type == "mouseleave":
+        active_elements = document.querySelectorAll(".active-element")
+        for el in active_elements:
+            el.classList.remove("active-element")
 
 def spell_phrase(event):
     phrase = document.querySelector("#phrase-input").value.strip()
@@ -381,27 +455,38 @@ def spell_phrase(event):
         result_div.innerHTML = '<span class="error">Please enter a phrase!</span>'
         return
     
-    results, failed_word = findSymbols(phrase)
+    results = findSymbols(phrase)
     
-    if failed_word:
-        result_div.innerHTML = f'<span class="error">Cannot spell \'{failed_word}\' with element symbols!</span>'
-    else:
-        html_result = ""
-        for word_elements in results:
+    html_result = '<div class="phrase-container">'
+    for word_result in results:
+        if word_result["spellable"]:
             word_html = ""
-            for element in word_elements:
+            for element in word_result["elements"]:
                 word_html += f'<span class="element" data-element="{element}">{element}</span>'
             html_result += f'<div class="word">{word_html}</div>'
-        
-        result_div.innerHTML = html_result
-        
-        # Add event listeners to all element spans
-        element_spans = document.querySelectorAll(".element")
-        for span in element_spans:
-            proxy_show_details = create_proxy(show_element_details)
-            proxy_hide_details = create_proxy(hide_element_details)
-            span.addEventListener("mouseenter", proxy_show_details)
-            span.addEventListener("mouseleave", proxy_hide_details)
+        else:
+            html_result += f'<div class="word"><span class="plain-word">{word_result["word"]}</span></div>'
+    html_result += '</div>'
+    
+    result_div.innerHTML = html_result
+    
+    # Add event listeners to all element spans
+    element_spans = document.querySelectorAll(".element")
+    for span in element_spans:
+        proxy_show_details = create_proxy(show_element_details)
+        proxy_hide_details = create_proxy(hide_element_details)
+        span.addEventListener("mouseenter", proxy_show_details)
+        span.addEventListener("mouseleave", proxy_hide_details)
+        span.addEventListener("click", proxy_show_details)  # Add click support for mobile
+    
+    # Add event listeners to all plain word spans
+    plain_word_spans = document.querySelectorAll(".plain-word")
+    for span in plain_word_spans:
+        proxy_show_plain_message = create_proxy(show_plain_word_message)
+        proxy_hide_details = create_proxy(hide_element_details)
+        span.addEventListener("mouseenter", proxy_show_plain_message)
+        span.addEventListener("mouseleave", proxy_hide_details)
+        span.addEventListener("click", proxy_show_plain_message)  # Add click support for mobile
 
 # Hide loading message when PyScript is ready
 document.querySelector("#loading").style.display = "none"
@@ -410,6 +495,11 @@ document.querySelector("#loading").style.display = "none"
 button = document.querySelector("#spell-button")
 proxy_spell_phrase = create_proxy(spell_phrase)
 button.addEventListener("click", proxy_spell_phrase)
+
+# Add event listener for Enter key on the input field
+input_field = document.querySelector("#phrase-input")
+proxy_handle_enter = create_proxy(handle_enter_key)
+input_field.addEventListener("keydown", proxy_handle_enter)
 </script>
 
 </body>
