@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Speller</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2025.2.4/core.css">
+    <script type="module" src="https://pyscript.net/releases/2025.2.4/core.js"></script>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #f0f8ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #4b0082;
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 10px;
+            border: 2px solid #9370db;
+            border-radius: 8px;
+            width: 80%;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #9370db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #8a2be2;
+        }
+        #result {
+            margin-top: 30px;
+            font-size: 24px;
+            color: #4b0082;
+            min-height: 50px;
+        }
+        .element {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px;
+            border-radius: 5px;
+            background-color: #e6e6fa;
+            color: #4b0082;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .element:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: #d8bfd8;
+        }
+        .error {
+            color: #ff4500;
+            font-size: 18px;
+        }
+        .beaker {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        .word {
+            margin-bottom: 10px;
+        }
+        #loading {
+            margin-top: 20px;
+            color: #9370db;
+        }
+        #element-details {
+            margin-top: 20px;
+            height: 120px;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #f0e6ff;
+            transition: opacity 0.3s ease;
+            opacity: 0.3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #element-details.active {
+            opacity: 1;
+        }
+        .placeholder-text {
+            color: #9370db;
+            font-style: italic;
+        }
+        .big-element {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            width: 100%;
+        }
+        .element-symbol {
+            font-size: 36px;
+            font-weight: bold;
+            color: #4b0082;
+        }
+        .element-name {
+            font-size: 24px;
+            margin-top: 5px;
+            color: #8a2be2;
+        }
+        .element-number {
+            font-size: 16px;
+            margin-top: 5px;
+            color: #9370db;
+        }
+        .credits {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed #d8bfd8;
+            font-size: 14px;
+            color: #8a2be2;
+        }
+        .credits a {
+            color: #4b0082;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        .credits a:hover {
+            color: #9370db;
+            text-decoration: underline;
+        }
+        .algorithm {
+            font-style: italic;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="beaker">🧪</div>
+        <h1>Element Speller</h1>
+        <p>Enter a phrase and see it spelled with chemical elements!</p>
+        
+        <input type="text" id="phrase-input" placeholder="Enter a phrase...">
+        <button id="spell-button">Spell with Elements</button>
+        
+        <div id="loading">Loading PyScript...</div>
+        <div id="result"></div>
+        <div id="element-details">
+            <span class="placeholder-text">Hover over an element to see details</span>
+        </div>
+        
+        <div class="credits">
+            Created by Amit Joshi
+            <br>
+            <a href="https://github.com/amitjoshi24" target="_blank">github.com/amitjoshi24</a>
+            <div class="algorithm">Built with Dynamic Programming</div>
+        </div>
+    </div>
+
+<script type="py">
+from pyscript import document
+from pyodide.ffi import create_proxy
+
+symbols = "H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn" + \
+" Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb" + \
+" Te I Xe Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl" + \
+" Pb Bi Po At Rn Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Ds Rg Cn Nh Fl" + \
+" Mc Lv Ts Og"
+splittedSymbols = symbols.split()
+symbolDict = dict()
+for symbol in splittedSymbols:
+    symbolDict[symbol.lower()] = symbol
+
+# Element names and atomic numbers
+element_data = {
+    "H": {"name": "Hydrogen", "number": 1},
+    "He": {"name": "Helium", "number": 2},
+    "Li": {"name": "Lithium", "number": 3},
+    "Be": {"name": "Beryllium", "number": 4},
+    "B": {"name": "Boron", "number": 5},
+    "C": {"name": "Carbon", "number": 6},
+    "N": {"name": "Nitrogen", "number": 7},
+    "O": {"name": "Oxygen", "number": 8},
+    "F": {"name": "Fluorine", "number": 9},
+    "Ne": {"name": "Neon", "number": 10},
+    "Na": {"name": "Sodium", "number": 11},
+    "Mg": {"name": "Magnesium", "number": 12},
+    "Al": {"name": "Aluminum", "number": 13},
+    "Si": {"name": "Silicon", "number": 14},
+    "P": {"name": "Phosphorus", "number": 15},
+    "S": {"name": "Sulfur", "number": 16},
+    "Cl": {"name": "Chlorine", "number": 17},
+    "Ar": {"name": "Argon", "number": 18},
+    "K": {"name": "Potassium", "number": 19},
+    "Ca": {"name": "Calcium", "number": 20},
+    "Sc": {"name": "Scandium", "number": 21},
+    "Ti": {"name": "Titanium", "number": 22},
+    "V": {"name": "Vanadium", "number": 23},
+    "Cr": {"name": "Chromium", "number": 24},
+    "Mn": {"name": "Manganese", "number": 25},
+    "Fe": {"name": "Iron", "number": 26},
+    "Co": {"name": "Cobalt", "number": 27},
+    "Ni": {"name": "Nickel", "number": 28},
+    "Cu": {"name": "Copper", "number": 29},
+    "Zn": {"name": "Zinc", "number": 30},
+    "Ga": {"name": "Gallium", "number": 31},
+    "Ge": {"name": "Germanium", "number": 32},
+    "As": {"name": "Arsenic", "number": 33},
+    "Se": {"name": "Selenium", "number": 34},
+    "Br": {"name": "Bromine", "number": 35},
+    "Kr": {"name": "Krypton", "number": 36},
+    "Rb": {"name": "Rubidium", "number": 37},
+    "Sr": {"name": "Strontium", "number": 38},
+    "Y": {"name": "Yttrium", "number": 39},
+    "Zr": {"name": "Zirconium", "number": 40},
+    "Nb": {"name": "Niobium", "number": 41},
+    "Mo": {"name": "Molybdenum", "number": 42},
+    "Tc": {"name": "Technetium", "number": 43},
+    "Ru": {"name": "Ruthenium", "number": 44},
+    "Rh": {"name": "Rhodium", "number": 45},
+    "Pd": {"name": "Palladium", "number": 46},
+    "Ag": {"name": "Silver", "number": 47},
+    "Cd": {"name": "Cadmium", "number": 48},
+    "In": {"name": "Indium", "number": 49},
+    "Sn": {"name": "Tin", "number": 50},
+    "Sb": {"name": "Antimony", "number": 51},
+    "Te": {"name": "Tellurium", "number": 52},
+    "I": {"name": "Iodine", "number": 53},
+    "Xe": {"name": "Xenon", "number": 54},
+    "Cs": {"name": "Cesium", "number": 55},
+    "Ba": {"name": "Barium", "number": 56},
+    "La": {"name": "Lanthanum", "number": 57},
+    "Ce": {"name": "Cerium", "number": 58},
+    "Pr": {"name": "Praseodymium", "number": 59},
+    "Nd": {"name": "Neodymium", "number": 60},
+    "Pm": {"name": "Promethium", "number": 61},
+    "Sm": {"name": "Samarium", "number": 62},
+    "Eu": {"name": "Europium", "number": 63},
+    "Gd": {"name": "Gadolinium", "number": 64},
+    "Tb": {"name": "Terbium", "number": 65},
+    "Dy": {"name": "Dysprosium", "number": 66},
+    "Ho": {"name": "Holmium", "number": 67},
+    "Er": {"name": "Erbium", "number": 68},
+    "Tm": {"name": "Thulium", "number": 69},
+    "Yb": {"name": "Ytterbium", "number": 70},
+    "Lu": {"name": "Lutetium", "number": 71},
+    "Hf": {"name": "Hafnium", "number": 72},
+    "Ta": {"name": "Tantalum", "number": 73},
+    "W": {"name": "Tungsten", "number": 74},
+    "Re": {"name": "Rhenium", "number": 75},
+    "Os": {"name": "Osmium", "number": 76},
+    "Ir": {"name": "Iridium", "number": 77},
+    "Pt": {"name": "Platinum", "number": 78},
+    "Au": {"name": "Gold", "number": 79},
+    "Hg": {"name": "Mercury", "number": 80},
+    "Tl": {"name": "Thallium", "number": 81},
+    "Pb": {"name": "Lead", "number": 82},
+    "Bi": {"name": "Bismuth", "number": 83},
+    "Po": {"name": "Polonium", "number": 84},
+    "At": {"name": "Astatine", "number": 85},
+    "Rn": {"name": "Radon", "number": 86},
+    "Fr": {"name": "Francium", "number": 87},
+    "Ra": {"name": "Radium", "number": 88},
+    "Ac": {"name": "Actinium", "number": 89},
+    "Th": {"name": "Thorium", "number": 90},
+    "Pa": {"name": "Protactinium", "number": 91},
+    "U": {"name": "Uranium", "number": 92},
+    "Np": {"name": "Neptunium", "number": 93},
+    "Pu": {"name": "Plutonium", "number": 94},
+    "Am": {"name": "Americium", "number": 95},
+    "Cm": {"name": "Curium", "number": 96},
+    "Bk": {"name": "Berkelium", "number": 97},
+    "Cf": {"name": "Californium", "number": 98},
+    "Es": {"name": "Einsteinium", "number": 99},
+    "Fm": {"name": "Fermium", "number": 100},
+    "Md": {"name": "Mendelevium", "number": 101},
+    "No": {"name": "Nobelium", "number": 102},
+    "Lr": {"name": "Lawrencium", "number": 103},
+    "Rf": {"name": "Rutherfordium", "number": 104},
+    "Db": {"name": "Dubnium", "number": 105},
+    "Sg": {"name": "Seaborgium", "number": 106},
+    "Bh": {"name": "Bohrium", "number": 107},
+    "Hs": {"name": "Hassium", "number": 108},
+    "Mt": {"name": "Meitnerium", "number": 109},
+    "Ds": {"name": "Darmstadtium", "number": 110},
+    "Rg": {"name": "Roentgenium", "number": 111},
+    "Cn": {"name": "Copernicium", "number": 112},
+    "Nh": {"name": "Nihonium", "number": 113},
+    "Fl": {"name": "Flerovium", "number": 114},
+    "Mc": {"name": "Moscovium", "number": 115},
+    "Lv": {"name": "Livermorium", "number": 116},
+    "Ts": {"name": "Tennessine", "number": 117},
+    "Og": {"name": "Oganesson", "number": 118}
+}
+
+def findSymbolsHelper(word, phrase):
+    word = word.lower()
+    tfdp = [False] * (len(word) + 1) 
+    tfdp[-1] = True
+    dp = [None] * (len(word) + 1)
+    dp[-1] = ("", None)
+    for i in range(len(word)-1, -1, -1):
+        for endIndex in range(i + 1, min(len(dp), i + 1 + 2)):
+            substring = word[i:endIndex]
+            if tfdp[endIndex] == True and substring in symbolDict:
+                dp[i] = (symbolDict[substring], endIndex)
+                tfdp[i] = True
+                break
+    
+    if tfdp[0] == False:
+        return None
+    else:
+        res = []
+        curIndex = 0
+        elements = []
+        while curIndex is not None:
+            symbol = dp[curIndex][0]
+            if symbol:  # Skip empty strings
+                elements.append(symbol)
+            curIndex = dp[curIndex][1]
+        return elements
+
+def findSymbols(phrase):
+    splitted = phrase.split()
+    results = []
+    for word in splitted:
+        elements = findSymbolsHelper(word, phrase)
+        if elements is None:
+            return None, word
+        results.append(elements)
+    return results, None
+
+def show_element_details(event):
+    element_symbol = event.target.textContent
+    details_div = document.querySelector("#element-details")
+    
+    if element_symbol in element_data:
+        element_info = element_data[element_symbol]
+        details_div.innerHTML = f'''
+        <div class="big-element">
+            <div class="element-symbol">{element_symbol}</div>
+            <div class="element-name">{element_info["name"]}</div>
+            <div class="element-number">Atomic Number: {element_info["number"]}</div>
+        </div>
+        '''
+        details_div.classList.add("active")
+
+def hide_element_details(event):
+    details_div = document.querySelector("#element-details")
+    details_div.classList.remove("active")
+    details_div.innerHTML = '<span class="placeholder-text">Hover over an element to see details</span>'
+
+def spell_phrase(event):
+    phrase = document.querySelector("#phrase-input").value.strip()
+    result_div = document.querySelector("#result")
+    details_div = document.querySelector("#element-details")
+    details_div.innerHTML = '<span class="placeholder-text">Hover over an element to see details</span>'
+    details_div.classList.remove("active")
+    
+    if not phrase:
+        result_div.innerHTML = '<span class="error">Please enter a phrase!</span>'
+        return
+    
+    results, failed_word = findSymbols(phrase)
+    
+    if failed_word:
+        result_div.innerHTML = f'<span class="error">Cannot spell \'{failed_word}\' with element symbols!</span>'
+    else:
+        html_result = ""
+        for word_elements in results:
+            word_html = ""
+            for element in word_elements:
+                word_html += f'<span class="element" data-element="{element}">{element}</span>'
+            html_result += f'<div class="word">{word_html}</div>'
+        
+        result_div.innerHTML = html_result
+        
+        # Add event listeners to all element spans
+        element_spans = document.querySelectorAll(".element")
+        for span in element_spans:
+            proxy_show_details = create_proxy(show_element_details)
+            proxy_hide_details = create_proxy(hide_element_details)
+            span.addEventListener("mouseenter", proxy_show_details)
+            span.addEventListener("mouseleave", proxy_hide_details)
+
+# Hide loading message when PyScript is ready
+document.querySelector("#loading").style.display = "none"
+
+# Add event listener to the button using create_proxy to properly handle the callback
+button = document.querySelector("#spell-button")
+proxy_spell_phrase = create_proxy(spell_phrase)
+button.addEventListener("click", proxy_spell_phrase)
+</script>
+
+</body>
+</html> 
