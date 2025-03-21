@@ -351,7 +351,7 @@ element_data = {
     "Ts": {"name": "Tennessine", "number": 117},
     "Og": {"name": "Oganesson", "number": 118}
 }
-
+import random
 def findSymbolsHelper(word, phrase):
     word = word.lower()
     tfdp = [False] * (len(word) + 1) 
@@ -359,12 +359,14 @@ def findSymbolsHelper(word, phrase):
     dp = [None] * (len(word) + 1)
     dp[-1] = ("", None)
     for i in range(len(word)-1, -1, -1):
+        possibilities = []
         for endIndex in range(i + 1, min(len(dp), i + 1 + 2)):
             substring = word[i:endIndex]
             if tfdp[endIndex] == True and substring in symbolDict:
-                dp[i] = (symbolDict[substring], endIndex)
-                tfdp[i] = True
-                break
+                possibilities.append((symbolDict[substring], endIndex))
+        if possibilities:
+            dp[i] = random.choice(possibilities)
+            tfdp[i] = True
     
     if tfdp[0] == False:
         return None
