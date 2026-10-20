@@ -1,0 +1,361 @@
+/* Modal Overlays & Cards */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(30, 10, 60, 0.6);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    box-sizing: border-box;
+    backdrop-filter: blur(3px);
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-card {
+    background-color: #ffffff;
+    border: 2px solid #9370db;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    box-sizing: border-box;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(75, 0, 130, 0.25);
+    font-family: 'Comic Sans MS', Arial, Helvetica, sans-serif;
+    color: #4b0082;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px dashed #d8bfd8;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 22px;
+    color: #4b0082;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 26px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #8a2be2;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.modal-close-btn:hover {
+    background-color: #f0e6ff;
+}
+
+/* Statistics Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 22px;
+    text-align: center;
+}
+
+.stat-item {
+    background: #f7f2ff;
+    padding: 12px 6px;
+    border-radius: 10px;
+    border: 1px solid #d8bfd8;
+}
+
+.stat-val {
+    font-size: 28px;
+    font-weight: bold;
+    color: #4b0082;
+    line-height: 1;
+}
+
+.stat-lbl {
+    font-size: 11px;
+    color: #8a2be2;
+    margin-top: 4px;
+    font-weight: bold;
+}
+
+/* Distribution Graph */
+.dist-section-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #4b0082;
+    margin: 16px 0 10px;
+    text-align: left;
+}
+
+.dist-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+}
+
+.dist-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.dist-label {
+    width: 70px;
+    text-align: right;
+    color: #6a0dad;
+    flex-shrink: 0;
+}
+
+.dist-track {
+    flex: 1;
+    background-color: #f0f0f5;
+    border-radius: 6px;
+    height: 22px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.dist-fill {
+    height: 100%;
+    background-color: #9370db;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    min-width: 22px;
+    box-sizing: border-box;
+    transition: width 0.5s ease;
+}
+
+.dist-fill.highlight {
+    background-color: #4b0082;
+    box-shadow: 0 0 8px rgba(75, 0, 130, 0.4);
+}
+
+.dist-fill.zero {
+    background-color: #e0e0ea;
+    color: #888;
+    justify-content: center;
+    padding-right: 0;
+}
+
+/* Countdown & Action Buttons */
+.modal-footer-box {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px dashed #d8bfd8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.countdown-box {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.countdown-lbl {
+    font-size: 11px;
+    color: #8a2be2;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.countdown-val {
+    font-size: 20px;
+    font-weight: bold;
+    color: #4b0082;
+    letter-spacing: 1px;
+}
+
+.share-btn {
+    background-color: #4b0082;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.share-btn:hover {
+    background-color: #6a0dad;
+    transform: translateY(-1px);
+}
+
+/* Archive List & Filter Buttons */
+.archive-filters {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.archive-filter-btn {
+    flex: 1;
+    background-color: #f7f2ff;
+    color: #6a0dad;
+    border: 1px solid #d8bfd8;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.archive-filter-btn.active {
+    background-color: #9370db;
+    color: white;
+    border-color: #4b0082;
+}
+
+.archive-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.archive-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #e0d4f5;
+    background-color: #faf7ff;
+    transition: all 0.2s;
+}
+
+.archive-item:hover {
+    background-color: #f0e6ff;
+    border-color: #9370db;
+}
+
+.archive-meta {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.archive-pnum {
+    font-size: 15px;
+    font-weight: bold;
+    color: #4b0082;
+}
+
+.archive-date {
+    font-size: 12px;
+    color: #8a2be2;
+}
+
+.archive-status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.archive-status-badge.won {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.archive-status-badge.unplayed {
+    background-color: #f5f5f5;
+    color: #666;
+    border: 1px solid #ddd;
+}
+
+.archive-play-btn {
+    background-color: #9370db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.archive-play-btn:hover {
+    background-color: #8a2be2;
+}
+
+/* How to Play Rules */
+.rules-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+    text-align: left;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.rules-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.example-box {
+    background-color: #f7f2ff;
+    border: 1px dashed #9370db;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 12px 0;
+    text-align: center;
+}
+
+.example-tiles {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+}
