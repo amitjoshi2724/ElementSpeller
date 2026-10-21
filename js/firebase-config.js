@@ -7,12 +7,12 @@ import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 export const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyDnI0nEq0Km3GGWQDTwWYa7kbPLID3pYzU",
-    authDomain: "elementspeller-amitjoshi2724.firebaseapp.com",
-    projectId: "elementspeller-amitjoshi2724",
-    storageBucket: "elementspeller-amitjoshi2724.firebasestorage.app",
-    messagingSenderId: "790815043624",
-    appId: "1:790815043624:web:66f0dc2d1d4dbda06bc51d",
+    apiKey: "AIzaSyAuLNUU58o9-lQ0On8XIqZZ1IIZ24zqGEE",
+    authDomain: "element-speller-amitjoshi2724.firebaseapp.com",
+    projectId: "element-speller-amitjoshi2724",
+    storageBucket: "element-speller-amitjoshi2724.firebasestorage.app",
+    messagingSenderId: "743497690246",
+    appId: "1:743497690246:web:63a9177a17be8951d03507",
     measurementId: "G-JQP8CHKRGR"
 };
 
