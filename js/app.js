@@ -800,7 +800,7 @@ class ElementSpellerGame {
         const puzzleTag = this.isPractice ? "Element-Speller Practice" : `Element-Speller #${this.puzzleNumber}`;
         const timeStr = this.solveTimeMs ? `⏱️ ${formatTimeMs(this.solveTimeMs)}` : "⏱️ In Progress";
         const elemBoxes = this.placedElements.map(e => `[${e.symbol}]`).join(" ");
-        const shareText = `🧪 ${puzzleTag} • ${timeStr}\n${elemBoxes}\nhttps://amitjoshi24.github.io/element-speller/`;
+        const shareText = `🧪 ${puzzleTag} • ${timeStr}\n${elemBoxes}\nhttps://amitjoshi2724.github.io/element-speller/`;
 
         navigator.clipboard.writeText(shareText).then(() => {
             const btn = this.dom.shareBtn;
