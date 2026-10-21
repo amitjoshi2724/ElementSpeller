@@ -45,7 +45,7 @@
         <div class="beaker">🧪</div>
         <h1>ElementSpeller</h1>
         <div class="puzzle-meta-badge" id="puzzle-meta-badge">Loading Daily Puzzle...</div>
-        <p>Spell the target word using chemical elements as fast as you can!</p>
+        <p>Spell the target word using chemical elements as fast as you can! <strong>Drag any element to the 🗑️ trash can to delete it.</strong></p>
 
         <!-- Live Solve Stopwatch & Quick Action Controls -->
         <div class="timer-control-row">
@@ -65,6 +65,16 @@
             <div id="target-word-display" class="target-word-display">------</div>
             <div id="element-slots-row" class="element-slots-row">
                 <!-- Dynamically populated with placed element tiles ONLY (no rigid ? placeholders) -->
+            </div>
+
+            <!-- Trash Can Drop Zone -->
+            <div id="trash-can-zone" class="trash-can-zone" title="Drag any element card here to delete it (or click to remove last)">
+                <span class="trash-can-emoji">🗑️</span>
+                <span class="trash-can-label" id="trash-can-label">Drag element here to delete</span>
+            </div>
+
+            <div class="drag-hint-text" id="drag-hint-text">
+                <span>💡 <strong>Tip:</strong> Drag any element card to the 🗑️ trash can (or click &times;) to delete it at any time!</span>
             </div>
         </div>
 
@@ -142,6 +152,12 @@
                         • <strong>NO</strong> can be 1 element (<em>Nobelium</em> [<strong>No</strong>]) or 2 elements (<em>Nitrogen</em> [<strong>N</strong>] + <em>Oxygen</em> [<strong>O</strong>])<br>
                         • <strong>BACON</strong> can be <em>Barium</em> [<strong>Ba</strong>] + <em>Carbon</em> [<strong>C</strong>] + <em>Oxygen</em> [<strong>O</strong>] + <em>Nitrogen</em> [<strong>N</strong>], or <em>Boron</em> [<strong>B</strong>] + <em>Actinium</em> [<strong>Ac</strong>] + <em>Oxygen</em> [<strong>O</strong>] + <em>Nitrogen</em> [<strong>N</strong>]
                     </div>
+                </div>
+            </div>
+            <div class="rules-step">
+                <div class="rules-icon">🗑️</div>
+                <div>
+                    <strong>Drag to Delete:</strong> Need to change an element you placed earlier? Simply <strong>drag any element card into the 🗑️ trash can</strong> (or click &times;) to delete it! You don't have to undo one-by-one.
                 </div>
             </div>
             <div class="rules-step">

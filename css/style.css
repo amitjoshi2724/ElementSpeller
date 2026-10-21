@@ -171,18 +171,72 @@ h1 {
     color: #4b0082;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     transform: scale(1.05);
-    cursor: pointer;
+    cursor: grab;
+    position: relative;
+    user-select: none;
+    -webkit-user-drag: element;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.element-slot.filled:active {
+    cursor: grabbing;
 }
 
 .element-slot.filled:hover {
     transform: scale(1.1) translateY(-2px);
     background-color: #d8bfd8;
+    box-shadow: 0 6px 12px rgba(75, 0, 130, 0.2);
+}
+
+.element-slot.dragging {
+    opacity: 0.35;
+    transform: scale(0.95);
+    border-style: dashed;
+    border-color: #ef4444;
+}
+
+/* Individual Tile Delete Button */
+.slot-delete-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: #ef4444;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+    padding: 0;
+    line-height: 1;
+    z-index: 5;
+}
+
+.element-slot.filled:hover .slot-delete-btn,
+.element-slot.filled:focus-within .slot-delete-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.slot-delete-btn:hover {
+    background: #b91c1c;
+    transform: scale(1.2);
 }
 
 .element-slot .slot-symbol {
     font-size: 24px;
     font-weight: bold;
     line-height: 1;
+    pointer-events: none;
 }
 
 .element-slot .slot-name {
@@ -190,11 +244,100 @@ h1 {
     margin-top: 3px;
     color: #8a2be2;
     font-weight: bold;
+    pointer-events: none;
 }
 
 .element-slot .slot-number {
     font-size: 9px;
     color: #6a0dad;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   Trash Can Drop Zone & Drag Hint
+   ========================================================================== */
+.trash-can-zone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 6px 16px;
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    background: #f9fafb;
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+    margin-top: 12px;
+}
+
+.trash-can-zone.has-elements {
+    border-color: #fca5a5;
+    background: #fff5f5;
+    color: #ef4444;
+}
+
+.trash-can-zone.has-elements:hover {
+    background: #fee2e2;
+    border-color: #f87171;
+    color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(239, 68, 68, 0.2);
+}
+
+.trash-can-zone.drag-active {
+    border-color: #ef4444;
+    background: #fee2e2;
+    color: #b91c1c;
+    transform: scale(1.03);
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
+    animation: pulseTrash 1s infinite alternate;
+}
+
+.trash-can-zone.drag-over {
+    border-color: #dc2626;
+    border-style: solid;
+    background: #fecaca;
+    color: #7f1d1d;
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
+}
+
+@keyframes pulseTrash {
+    0% { transform: scale(1.01); border-color: #f87171; }
+    100% { transform: scale(1.04); border-color: #dc2626; }
+}
+
+.trash-can-emoji {
+    font-size: 20px;
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.trash-can-zone.drag-over .trash-can-emoji {
+    transform: rotate(-15deg) scale(1.25);
+}
+
+.trash-can-label {
+    font-size: 13px;
+    letter-spacing: 0.2px;
+}
+
+.drag-hint-text {
+    font-size: 12.5px;
+    color: #6a0dad;
+    margin-top: 6px;
+    font-style: italic;
+    opacity: 0.9;
+    display: none;
+}
+
+.drag-hint-text.visible {
+    display: block;
 }
 
 /* Input Form Controls */

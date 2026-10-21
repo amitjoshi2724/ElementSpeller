@@ -28,6 +28,7 @@ class ElementSpellerGame {
         this.currentWordIndex = 0;
         this.isGameOver = false;
         this.isWordRevealed = false;
+        this.draggedElementIndex = null;
 
         // Timer
         this.startTime = null;
@@ -88,6 +89,9 @@ class ElementSpellerGame {
             undoBtn: document.getElementById("undo-element-btn"),
             resetBtn: document.getElementById("reset-puzzle-btn"),
             inputGroupArea: document.getElementById("input-group-area"),
+            trashCanZone: document.getElementById("trash-can-zone"),
+            trashCanLabel: document.getElementById("trash-can-label"),
+            dragHintText: document.getElementById("drag-hint-text"),
 
             // Solved card
             solvedCard: document.getElementById("solved-card"),
@@ -189,6 +193,40 @@ class ElementSpellerGame {
         }
 
         // Toggle Practice vs Daily Mode
+        // Trash Can Drag & Drop and Click Handlers
+        if (this.dom.trashCanZone) {
+            this.dom.trashCanZone.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                this.dom.trashCanZone.classList.add("drag-over");
+                if (this.dom.trashCanLabel) this.dom.trashCanLabel.textContent = "Release to delete!";
+            });
+
+            this.dom.trashCanZone.addEventListener("dragleave", () => {
+                this.dom.trashCanZone.classList.remove("drag-over");
+                if (this.dom.trashCanLabel) this.dom.trashCanLabel.textContent = "Drop element here to delete";
+            });
+
+            this.dom.trashCanZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                this.dom.trashCanZone.classList.remove("drag-over", "drag-active");
+                if (this.dom.trashCanLabel) this.dom.trashCanLabel.textContent = "Drag element here to delete";
+
+                const rawIdx = e.dataTransfer.getData("text/plain");
+                const idx = rawIdx !== "" ? parseInt(rawIdx, 10) : this.draggedElementIndex;
+                if (!isNaN(idx) && idx >= 0 && idx < this.placedElements.length) {
+                    this.deleteElementAtIndex(idx);
+                }
+            });
+
+            // Clicking trash can removes the last element (intuitive quick-delete)
+            this.dom.trashCanZone.addEventListener("click", () => {
+                if (this.placedElements.length > 0 && !this.isGameOver && this.isWordRevealed) {
+                    this.deleteElementAtIndex(this.placedElements.length - 1);
+                }
+            });
+        }
+
         const toggleBtn = document.getElementById("toggle-mode-btn");
         if (toggleBtn) {
             toggleBtn.addEventListener("click", () => {
@@ -401,6 +439,7 @@ class ElementSpellerGame {
     renderElementSlots() {
         if (!this.dom.elementSlotsRow) return;
         this.dom.elementSlotsRow.innerHTML = "";
+        this.updateTrashCanState();
 
         if (!this.isWordRevealed) {
             this.dom.elementSlotsRow.innerHTML = `<span class="empty-tiles-placeholder">Click 'Reveal Word & Start Timer' when you are ready!</span>`;
@@ -417,15 +456,148 @@ class ElementSpellerGame {
             const tile = document.createElement("div");
             tile.className = "element-slot filled";
             tile.dataset.symbol = elem.symbol;
+            tile.dataset.index = i;
+            tile.draggable = !this.isGameOver;
+            tile.title = `Drag to 🗑️ trash to delete ${elem.name}`;
+
             tile.innerHTML = `
                 <span class="slot-num">${elem.number}</span>
                 <span class="slot-symbol">${elem.symbol}</span>
                 <span class="slot-name">${elem.name}</span>
+                <button class="slot-delete-btn" title="Delete ${elem.name} (&times;)" aria-label="Delete ${elem.name}">&times;</button>
             `;
 
             tile.addEventListener("mouseenter", () => this.showElementDetails(elem));
-            tile.addEventListener("click", () => this.showElementDetails(elem));
+            tile.addEventListener("click", (e) => {
+                if (e.target.closest(".slot-delete-btn")) return;
+                this.showElementDetails(elem);
+            });
+
+            // Individual delete button on card
+            const deleteBtn = tile.querySelector(".slot-delete-btn");
+            if (deleteBtn) {
+                deleteBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.deleteElementAtIndex(i);
+                });
+            }
+
+            // HTML5 Drag Events
+            tile.addEventListener("dragstart", (e) => {
+                this.draggedElementIndex = i;
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", String(i));
+                tile.classList.add("dragging");
+                if (this.dom.trashCanZone) {
+                    this.dom.trashCanZone.classList.add("drag-active");
+                    if (this.dom.trashCanLabel) this.dom.trashCanLabel.textContent = `Drop [${elem.symbol}] to delete`;
+                }
+            });
+
+            tile.addEventListener("dragend", () => {
+                tile.classList.remove("dragging");
+                if (this.dom.trashCanZone) {
+                    this.dom.trashCanZone.classList.remove("drag-active", "drag-over");
+                    if (this.dom.trashCanLabel) this.dom.trashCanLabel.textContent = "Drag element here to delete";
+                }
+                this.draggedElementIndex = null;
+            });
+
+            // Touch Screen Support (Mobile / Tablet dragging)
+            let touchStartX = 0;
+            let touchStartY = 0;
+            tile.addEventListener("touchstart", (e) => {
+                if (this.isGameOver) return;
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                this.draggedElementIndex = i;
+            }, { passive: true });
+
+            tile.addEventListener("touchmove", (e) => {
+                if (this.isGameOver || this.draggedElementIndex === null) return;
+                const touch = e.touches[0];
+                if (Math.hypot(touch.clientX - touchStartX, touch.clientY - touchStartY) > 15) {
+                    if (this.dom.trashCanZone) {
+                        this.dom.trashCanZone.classList.add("drag-active");
+                        const rect = this.dom.trashCanZone.getBoundingClientRect();
+                        const isOver = (
+                            touch.clientX >= rect.left &&
+                            touch.clientX <= rect.right &&
+                            touch.clientY >= rect.top &&
+                            touch.clientY <= rect.bottom
+                        );
+                        this.dom.trashCanZone.classList.toggle("drag-over", isOver);
+                    }
+                }
+            }, { passive: true });
+
+            tile.addEventListener("touchend", () => {
+                if (this.dom.trashCanZone && this.dom.trashCanZone.classList.contains("drag-over")) {
+                    this.deleteElementAtIndex(i);
+                }
+                if (this.dom.trashCanZone) {
+                    this.dom.trashCanZone.classList.remove("drag-active", "drag-over");
+                }
+                this.draggedElementIndex = null;
+            }, { passive: true });
+
             this.dom.elementSlotsRow.appendChild(tile);
+        }
+    }
+
+    updateTrashCanState() {
+        const hasElems = this.placedElements.length > 0 && !this.isGameOver && this.isWordRevealed;
+        if (this.dom.trashCanZone) {
+            this.dom.trashCanZone.classList.toggle("has-elements", hasElems);
+            if (!hasElems) {
+                this.dom.trashCanZone.classList.remove("drag-active", "drag-over");
+                if (this.dom.trashCanLabel) this.dom.trashCanLabel.textContent = "Trash Can (empty)";
+            } else {
+                if (this.dom.trashCanLabel) this.dom.trashCanLabel.textContent = "Drag element here to delete";
+            }
+        }
+        if (this.dom.dragHintText) {
+            this.dom.dragHintText.classList.toggle("visible", hasElems);
+        }
+    }
+
+    deleteElementAtIndex(deleteIndex) {
+        if (this.isGameOver || !this.isWordRevealed) return;
+        if (deleteIndex < 0 || deleteIndex >= this.placedElements.length) return;
+
+        const deletedElem = this.placedElements[deleteIndex];
+        const remainingCandidates = this.placedElements.filter((_, idx) => idx !== deleteIndex);
+
+        // Re-verify valid prefix of elements against currentWord
+        let curIndex = 0;
+        const validElements = [];
+        for (let i = 0; i < remainingCandidates.length; i++) {
+            const candidate = remainingCandidates[i];
+            const symLen = candidate.symbol.length;
+            const expectedSub = this.currentWord.slice(curIndex, curIndex + symLen).toLowerCase();
+            if (expectedSub === candidate.symbol.toLowerCase()) {
+                validElements.push(candidate);
+                curIndex += symLen;
+            } else {
+                // Subsequence no longer forms a valid contiguous spelling
+                break;
+            }
+        }
+
+        this.placedElements = validElements;
+        this.currentWordIndex = curIndex;
+
+        if (this.dom.undoBtn) this.dom.undoBtn.disabled = (this.placedElements.length === 0);
+        this.renderTargetWord();
+        this.renderElementSlots();
+        this.updateTrashCanState();
+
+        this.dom.statusMessage.textContent = `Deleted [${deletedElem.symbol}] ${deletedElem.name} in trash.`;
+        this.dom.statusMessage.className = "info";
+
+        if (this.dom.elementInput) {
+            this.dom.elementInput.focus();
         }
     }
 
@@ -562,6 +734,7 @@ class ElementSpellerGame {
         if (this.dom.inputGroupArea) {
             this.dom.inputGroupArea.style.display = "none";
         }
+        this.updateTrashCanState();
 
         // Open stats modal after brief celebration pause
         setTimeout(() => {
