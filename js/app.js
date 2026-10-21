@@ -1072,4 +1072,18 @@ class ElementSpellerGame {
 document.addEventListener("DOMContentLoaded", () => {
     window.elementSpellerGame = new ElementSpellerGame();
     window.elementleGame = window.elementSpellerGame;
+
+    // Register Service Worker for PWA & offline support (on http/https)
+    if ("serviceWorker" in navigator && (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker
+                .register("./sw.js")
+                .then((reg) => {
+                    console.log("ElementSpeller Service Worker registered:", reg.scope);
+                })
+                .catch((err) => {
+                    console.log("ElementSpeller Service Worker registration failed:", err);
+                });
+        });
+    }
 });
