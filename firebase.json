@@ -1,5 +1,13 @@
 {
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Element-Speller",
+        "supportEmail": "amit2724joshi@gmail.com"
+      }
+    }
   }
 }
