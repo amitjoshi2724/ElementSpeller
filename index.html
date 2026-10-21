@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elementle — Daily Element Speller Challenge</title>
+    <title>ElementSpeller — Daily Word Puzzle</title>
     <!-- Favicon -->
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <!-- Stylesheets -->
@@ -13,12 +13,16 @@
 </head>
 
 <body>
-    <!-- Top Navigation Bar (Mastermindle / Asteroidle Style) -->
+    <!-- Top Navigation Bar (Mastermindle / Asteroidle Pattern) -->
     <nav class="mode-nav-bar" aria-label="Game navigation">
         <div class="mode-title">
-            <span id="mode-title-text">🧪 Elementle</span>
+            <span id="mode-title-text">🧪 ElementSpeller</span>
         </div>
         <div class="nav-links-group">
+            <a href="https://ko-fi.com/I2I81CDN0L" target="_blank" rel="noopener noreferrer" class="nav-action-btn kofi-nav-btn" title="Support Amit on Ko-fi">
+                <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-nav-icon">
+                <span>Support</span>
+            </a>
             <a href="query/index.html" class="nav-action-btn" title="Spell any custom phrase with elements">
                 <span>🔍 Custom Speller</span>
             </a>
@@ -34,13 +38,14 @@
             <button id="open-help-btn" class="nav-action-btn" title="How to play">
                 <span>❓ Help</span>
             </button>
+            <div id="auth-container" class="auth-pill-container"></div>
         </div>
     </nav>
 
     <!-- Main Game Container -->
     <main class="container">
         <div class="beaker">🧪</div>
-        <h1>Elementle</h1>
+        <h1>ElementSpeller</h1>
         <div class="puzzle-meta-badge" id="puzzle-meta-badge">Loading Daily Puzzle...</div>
         <p>Spell today's secret word by entering chemical elements in order!</p>
 
@@ -75,12 +80,18 @@
             <span class="placeholder-text">Hover or click any element tile to view atomic details</span>
         </div>
 
-        <!-- Original Credits -->
+        <!-- Original Credits & Ko-fi Support -->
         <div class="credits">
             Created by Amit Joshi
             <br>
-            <a href="https://github.com/amitjoshi2724" target="_blank">github.com/amitjoshi2724</a>
+            <a href="https://github.com/amitjoshi2724" target="_blank" rel="noopener noreferrer">github.com/amitjoshi2724</a>
             <div class="algorithm">Built with Dynamic Programming</div>
+            <div class="kofi-footer-wrapper">
+                <a href="https://ko-fi.com/I2I81CDN0L" target="_blank" rel="noopener noreferrer" class="kofi-custom-btn" title="Support Amit on Ko-fi">
+                    <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-cup-icon">
+                    <span>Support me on Ko-fi</span>
+                </a>
+            </div>
         </div>
     </main>
 
@@ -88,7 +99,7 @@
     <div class="modal-overlay" id="how-to-play-modal">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 class="modal-title">❓ How to Play Elementle</h3>
+                <h3 class="modal-title">❓ How to Play ElementSpeller</h3>
                 <button class="modal-close-btn" aria-label="Close modal">&times;</button>
             </div>
             <div class="rules-step">
@@ -125,6 +136,13 @@
                     <strong>A new puzzle is released every day at midnight UTC!</strong> Past daily puzzles can be played anytime in the <strong>Archive</strong>.
                 </div>
             </div>
+            <div class="modal-kofi-bar">
+                <span>Enjoying ElementSpeller?</span>
+                <a href="https://ko-fi.com/I2I81CDN0L" target="_blank" rel="noopener noreferrer" class="kofi-modal-btn" title="Support Amit on Ko-fi">
+                    <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-cup-icon">
+                    <span>Support on Ko-fi</span>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -132,7 +150,7 @@
     <div class="modal-overlay" id="stats-modal">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 class="modal-title">📊 Elementle Statistics</h3>
+                <h3 class="modal-title">📊 ElementSpeller Statistics</h3>
                 <button class="modal-close-btn" aria-label="Close modal">&times;</button>
             </div>
             <div class="stats-grid">
@@ -167,6 +185,14 @@
                 <button class="share-btn" id="share-btn">
                     <span>📋 Share Result</span>
                 </button>
+            </div>
+
+            <div class="modal-kofi-bar">
+                <span>Love the game? Support development:</span>
+                <a href="https://ko-fi.com/I2I81CDN0L" target="_blank" rel="noopener noreferrer" class="kofi-modal-btn" title="Support Amit on Ko-fi">
+                    <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-cup-icon">
+                    <span>Support on Ko-fi</span>
+                </a>
             </div>
         </div>
     </div>

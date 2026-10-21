@@ -1,9 +1,10 @@
 import { elementData, symbols } from './elements.js';
 import { validateElementGuess, solveWord } from './speller.js';
 import { getDailyWord, getRandomWord, getTodayDateStr, getPuzzleNumber, getDateForPuzzleNumber, EPOCH_DATE_STR } from './prng.js';
-import { getStats, getHistory, getRecordForDate, recordCompletion, saveActiveState, loadActiveState } from './storage.js';
+import { getStats, getHistory, getRecordForDate, recordCompletion, saveActiveState, loadActiveState, onStorageChange } from './storage.js';
+import './auth.js';
 
-class ElementleGame {
+class ElementSpellerGame {
     constructor() {
         this.todayStr = getTodayDateStr();
         this.currentDateStr = this.todayStr;
@@ -22,6 +23,15 @@ class ElementleGame {
         this.initEventListeners();
         this.startPuzzle(this.todayStr);
         this.startCountdown();
+
+        onStorageChange(() => {
+            if (this.dom.statsModal && this.dom.statsModal.classList.contains('active')) {
+                this.renderStatsModal();
+            }
+            if (this.dom.archiveModal && this.dom.archiveModal.classList.contains('active')) {
+                this.renderArchiveModal();
+            }
+        });
     }
 
     initDOM() {
@@ -138,7 +148,7 @@ class ElementleGame {
             this.currentWord = puzzleInfo.word;
             this.puzzleNumber = 'Practice';
             this.dom.puzzleTitle.textContent = `🧪 Practice Mode • Random Word`;
-            this.dom.modeTitle.textContent = `🧪 Elementle (Practice)`;
+            this.dom.modeTitle.textContent = `🧪 ElementSpeller (Practice)`;
         } else {
             puzzleInfo = getDailyWord(dateStr);
             this.currentWord = puzzleInfo.word;
@@ -147,7 +157,7 @@ class ElementleGame {
             this.dom.puzzleTitle.textContent = isToday
                 ? `📅 Daily Puzzle #${this.puzzleNumber} • ${dateStr}`
                 : `📅 Past Puzzle #${this.puzzleNumber} • ${dateStr}`;
-            this.dom.modeTitle.textContent = `🧪 Elementle #${this.puzzleNumber}`;
+            this.dom.modeTitle.textContent = `🧪 ElementSpeller #${this.puzzleNumber}`;
         }
 
         // Check if previously completed
@@ -423,7 +433,7 @@ class ElementleGame {
     }
 
     copyShareCard() {
-        const puzzleTag = this.isPractice ? `Elementle Practice` : `Elementle #${this.puzzleNumber}`;
+        const puzzleTag = this.isPractice ? `ElementSpeller Practice` : `ElementSpeller #${this.puzzleNumber}`;
         const strikeEmoji = this.isGameOver && this.currentWordIndex >= this.currentWord.length
             ? (this.strikes === 0 ? '🧪 Flawless (0 strikes)!' : `${this.strikes}/5 strikes`)
             : '💀 X/5 strikes';
@@ -459,5 +469,6 @@ class ElementleGame {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    window.elementleGame = new ElementleGame();
+    window.elementSpellerGame = new ElementSpellerGame();
+    window.elementleGame = window.elementSpellerGame;
 });

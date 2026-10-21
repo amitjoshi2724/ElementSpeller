@@ -1,5 +1,5 @@
 /**
- * Deterministic PRNG & Date Arithmetic Module for Elementle / Daily Element Speller
+ * Deterministic PRNG & Date Arithmetic Module for ElementSpeller — Daily Word Puzzle
  * Uses Mulberry32 algorithm seeded by date hash.
  */
 import { WORDS } from './words.js';
@@ -63,7 +63,7 @@ export function getDateForPuzzleNumber(puzzleNum, epochStr = EPOCH_DATE_STR) {
  * Deterministically pick today's daily word using Mulberry32.
  */
 export function getDailyWord(dateStr) {
-    const seedVal = hashString(`elementle-word-${dateStr}`);
+    const seedVal = hashString(`elementspeller-word-${dateStr}`);
     const rng = createMulberry32(seedVal);
     const idx = Math.floor(rng() * WORDS.length);
     return {
