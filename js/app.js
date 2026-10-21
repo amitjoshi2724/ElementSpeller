@@ -302,7 +302,7 @@ class ElementSpellerGame {
             this.currentWord = puzzleInfo.word;
             this.puzzleNumber = "Practice";
             this.dom.puzzleTitle.textContent = "🧪 Practice Mode • Random Word";
-            this.dom.modeTitle.textContent = "🧪 ElementSpeller (Practice)";
+            this.dom.modeTitle.textContent = "🧪 Element-Speller (Practice)";
         } else {
             this.currentDateStr = dateStr;
             puzzleInfo = getDailyWord(dateStr);
@@ -313,7 +313,7 @@ class ElementSpellerGame {
             this.dom.puzzleTitle.textContent = isToday
                 ? `📅 Daily Puzzle #${this.puzzleNumber} • ${dateStr}`
                 : `📅 Past Puzzle #${this.puzzleNumber} • ${dateStr}`;
-            this.dom.modeTitle.textContent = `🧪 ElementSpeller #${this.puzzleNumber}`;
+            this.dom.modeTitle.textContent = `🧪 Element-Speller #${this.puzzleNumber}`;
         }
 
         // Render target word and dynamic element slots
@@ -665,7 +665,7 @@ class ElementSpellerGame {
 
     async handleReset(confirmPrompt = true) {
         if (confirmPrompt && (this.placedElements.length > 0 || this.isGameOver || this.isWordRevealed)) {
-            if (!confirm(`Reset ElementSpeller #${this.puzzleNumber}?\n\nThis will restart the puzzle so you can reveal and try again with a fresh timer!`)) {
+            if (!confirm(`Reset Element-Speller #${this.puzzleNumber}?\n\nThis will restart the puzzle so you can reveal and try again with a fresh timer!`)) {
                 return;
             }
         }
@@ -797,10 +797,10 @@ class ElementSpellerGame {
     }
 
     copyShareCard() {
-        const puzzleTag = this.isPractice ? "ElementSpeller Practice" : `ElementSpeller #${this.puzzleNumber}`;
+        const puzzleTag = this.isPractice ? "Element-Speller Practice" : `Element-Speller #${this.puzzleNumber}`;
         const timeStr = this.solveTimeMs ? `⏱️ ${formatTimeMs(this.solveTimeMs)}` : "⏱️ In Progress";
         const elemBoxes = this.placedElements.map(e => `[${e.symbol}]`).join(" ");
-        const shareText = `🧪 ${puzzleTag} • ${timeStr}\n${elemBoxes}\nhttps://amitjoshi24.github.io/ElementSpeller/`;
+        const shareText = `🧪 ${puzzleTag} • ${timeStr}\n${elemBoxes}\nhttps://amitjoshi24.github.io/element-speller/`;
 
         navigator.clipboard.writeText(shareText).then(() => {
             const btn = this.dom.shareBtn;
@@ -1032,7 +1032,7 @@ class ElementSpellerGame {
             return `
                 <div class="archive-item">
                     <div class="archive-meta">
-                        <span class="archive-pnum">ElementSpeller #${item.pNum}</span>
+                        <span class="archive-pnum">Element-Speller #${item.pNum}</span>
                         <span class="archive-date">${item.dateStr}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -1079,10 +1079,10 @@ document.addEventListener("DOMContentLoaded", () => {
             navigator.serviceWorker
                 .register("./sw.js")
                 .then((reg) => {
-                    console.log("ElementSpeller Service Worker registered:", reg.scope);
+                    console.log("Element-Speller Service Worker registered:", reg.scope);
                 })
                 .catch((err) => {
-                    console.log("ElementSpeller Service Worker registration failed:", err);
+                    console.log("Element-Speller Service Worker registration failed:", err);
                 });
         });
     }

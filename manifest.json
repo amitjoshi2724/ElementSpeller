@@ -1,6 +1,6 @@
 {
-  "name": "ElementSpeller",
-  "short_name": "ElementSpeller",
+  "name": "Element-Speller",
+  "short_name": "Element-Speller",
   "description": "Daily chemical word puzzle game created by Amit Joshi (@amitjoshi2724). Spell words using Periodic Table element symbols as fast as you can!",
   "start_url": "./index.html",
   "display": "standalone",

@@ -306,6 +306,8 @@ async function syncToCloud() {
         const userRef = firestoreFns.doc(firestoreDb, "users", user.uid);
         const cleanStats = sanitizeStats(memoryStats, memoryHistory);
         await firestoreFns.setDoc(userRef, {
+            element_speller_stats: cleanStats,
+            element_speller_history: memoryHistory,
             elementspeller_stats: cleanStats,
             elementspeller_history: memoryHistory,
             lastUpdated: Date.now()
@@ -332,8 +334,8 @@ onAuthChange(async (user) => {
 
         if (snap.exists()) {
             const cloudData = snap.data();
-            const cloudStats = cloudData.elementspeller_stats || cloudData.elementle_stats || {};
-            const cloudHistory = cloudData.elementspeller_history || cloudData.elementle_history || {};
+            const cloudStats = cloudData.element_speller_stats || cloudData.elementspeller_stats || cloudData.elementle_stats || {};
+            const cloudHistory = cloudData.element_speller_history || cloudData.elementspeller_history || cloudData.elementle_history || {};
 
             // Merge history: union of completed puzzles
             const mergedHistory = { ...memoryHistory };
@@ -365,8 +367,8 @@ onAuthChange(async (user) => {
         firestoreUnsubscribe = firestoreFns.onSnapshot(userRef, (docSnap) => {
             if (docSnap.exists()) {
                 const updated = docSnap.data();
-                const incomingHist = updated.elementspeller_history || updated.elementle_history;
-                const incomingStats = updated.elementspeller_stats || updated.elementle_stats;
+                const incomingHist = updated.element_speller_history || updated.elementspeller_history || updated.elementle_history;
+                const incomingStats = updated.element_speller_stats || updated.elementspeller_stats || updated.elementle_stats;
                 if (incomingHist) memoryHistory = { ...memoryHistory, ...incomingHist };
                 if (incomingStats) {
                     memoryStats = sanitizeStats({ ...DEFAULT_STATS, ...incomingStats }, memoryHistory);
