@@ -10,6 +10,8 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/modals.css">
+    <!-- Ko-fi Widget Script -->
+    <script src="https://storage.ko-fi.com/cdn/widget/Widget_2.js"></script>
 </head>
 
 <body>
@@ -19,10 +21,6 @@
             <span id="mode-title-text">🧪 ElementSpeller</span>
         </div>
         <div class="nav-links-group">
-            <a href="https://ko-fi.com/I2I81CDN0L" target="_blank" rel="noopener noreferrer" class="nav-action-btn kofi-nav-btn" title="Support Amit on Ko-fi">
-                <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-nav-icon">
-                <span>Support</span>
-            </a>
             <a href="query/index.html" class="nav-action-btn" title="Spell any custom phrase with elements">
                 <span>🔍 Custom Speller</span>
             </a>
@@ -38,7 +36,7 @@
             <button id="open-help-btn" class="nav-action-btn" title="How to play">
                 <span>❓ Help</span>
             </button>
-            <div id="auth-container" class="auth-pill-container"></div>
+            <div id="auth-container"></div>
         </div>
     </nav>
 
@@ -104,11 +102,15 @@
             <br>
             <a href="https://github.com/amitjoshi2724" target="_blank" rel="noopener noreferrer">github.com/amitjoshi2724</a>
             <div class="algorithm">Built with Dynamic Programming</div>
-            <div class="kofi-footer-wrapper">
-                <a href="https://ko-fi.com/I2I81CDN0L" target="_blank" rel="noopener noreferrer" class="kofi-custom-btn" title="Support Amit on Ko-fi">
-                    <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-cup-icon">
-                    <span>Support me on Ko-fi</span>
-                </a>
+            <div id="kofi-widget-container" style="display: flex; align-items: center; justify-content: center; margin-top: 14px;">
+                <script>
+                    try {
+                        kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'I2I81CDN0L');
+                        kofiwidget2.draw();
+                    } catch (e) {
+                        console.error('Ko-fi widget error:', e);
+                    }
+                </script>
             </div>
         </div>
     </main>
@@ -154,13 +156,7 @@
                     <strong>Calendar Archive:</strong> Browse the full monthly calendar of past daily puzzles in the <strong>Archive</strong>.
                 </div>
             </div>
-            <div class="modal-kofi-bar">
-                <span>Enjoying ElementSpeller?</span>
-                <a href="https://ko-fi.com/I2I81CDN0L" target="_blank" rel="noopener noreferrer" class="kofi-modal-btn" title="Support Amit on Ko-fi">
-                    <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-cup-icon">
-                    <span>Support on Ko-fi</span>
-                </a>
-            </div>
+
         </div>
     </div>
 
@@ -210,13 +206,7 @@
                 </div>
             </div>
 
-            <div class="modal-kofi-bar">
-                <span>Love the game? Support development:</span>
-                <a href="https://ko-fi.com/I2I81CDN0L" target="_blank" rel="noopener noreferrer" class="kofi-modal-btn" title="Support Amit on Ko-fi">
-                    <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-cup-icon">
-                    <span>Support on Ko-fi</span>
-                </a>
-            </div>
+
         </div>
     </div>
 

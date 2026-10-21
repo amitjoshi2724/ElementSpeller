@@ -14,7 +14,7 @@ import {
     formatTimeMs,
     getTimeBin
 } from "./storage.js";
-import "./auth.js";
+import { setupAuthUI } from "./auth.js";
 
 class ElementSpellerGame {
     constructor() {
@@ -27,6 +27,7 @@ class ElementSpellerGame {
         this.placedElements = [];
         this.currentWordIndex = 0;
         this.isGameOver = false;
+        this.isWordRevealed = false;
 
         // Timer
         this.startTime = null;
@@ -42,8 +43,24 @@ class ElementSpellerGame {
         this.initDatalist();
         this.initEventListeners();
         this.setupArchiveTabs();
+        setupAuthUI("auth-container");
         this.startPuzzle(this.todayStr);
         this.startMidnightCountdown();
+
+        // Ensure Ko-fi widget renders cleanly at bottom
+        setTimeout(() => {
+            const kofiContainer = document.getElementById("kofi-widget-container");
+            if (kofiContainer && !kofiContainer.querySelector(".btn-container") && !kofiContainer.querySelector(".kofi-button")) {
+                if (window.kofiwidget2) {
+                    try {
+                        window.kofiwidget2.init("Support me on Ko-fi", "#72a4f2", "I2I81CDN0L");
+                        kofiContainer.innerHTML = window.kofiwidget2.getHTML();
+                    } catch (e) {
+                        console.error("Ko-fi widget fallback error:", e);
+                    }
+                }
+            }
+        }, 300);
 
         onStorageChange(() => {
             if (this.dom.statsModal && this.dom.statsModal.classList.contains("active")) {
@@ -268,6 +285,7 @@ class ElementSpellerGame {
         // Check if previously completed
         const existingRecord = !isPractice ? getRecordForDate(dateStr) : null;
         if (existingRecord && existingRecord.won) {
+            this.isWordRevealed = true;
             this.isGameOver = true;
             this.solveTimeMs = existingRecord.solveTimeMs || 0;
             this.placedElements = existingRecord.elementsUsed || solveWord(this.currentWord) || [];
@@ -287,15 +305,44 @@ class ElementSpellerGame {
             return;
         }
 
-        // Start active stopwatch
-        this.startSolveTimer();
-        this.dom.statusMessage.textContent = "Timer running! Enter elements from left to right to spell the word.";
-        this.dom.statusMessage.className = "info";
+        // Unstarted state: word is hidden, timer is stopped at 00:00.0
+        this.isWordRevealed = false;
+        this.stopSolveTimer();
+        this.dom.liveTimerDisplay.textContent = "00:00.0";
+        this.renderTargetWord();
+        this.renderElementSlots();
 
         if (this.dom.elementInput) {
             this.dom.elementInput.value = "";
+            this.dom.elementInput.disabled = true;
+            this.dom.elementInput.placeholder = "Click 'Reveal Word & Start Timer' above to begin...";
+        }
+        if (this.dom.submitBtn) {
+            this.dom.submitBtn.disabled = true;
+        }
+        this.dom.statusMessage.textContent = "Ready? Click 'Reveal Word & Start Timer' whenever you are ready!";
+        this.dom.statusMessage.className = "info";
+    }
+
+    revealWordAndStart() {
+        if (this.isWordRevealed || this.isGameOver) return;
+        this.isWordRevealed = true;
+        this.renderTargetWord();
+        this.renderElementSlots();
+
+        if (this.dom.elementInput) {
+            this.dom.elementInput.disabled = false;
+            this.dom.elementInput.placeholder = "Enter element name or symbol (e.g. Carbon, C)...";
+            this.dom.elementInput.value = "";
             this.dom.elementInput.focus();
         }
+        if (this.dom.submitBtn) {
+            this.dom.submitBtn.disabled = false;
+        }
+
+        this.startSolveTimer();
+        this.dom.statusMessage.textContent = "Timer running! Enter elements from left to right to spell the word.";
+        this.dom.statusMessage.className = "info";
     }
 
     startSolveTimer() {
@@ -330,6 +377,22 @@ class ElementSpellerGame {
 
     renderTargetWord() {
         if (!this.dom.targetWordDisplay) return;
+
+        if (!this.isWordRevealed) {
+            const btnLabel = this.isPractice ? "▶️ Reveal Practice Word & Start Timer" : "▶️ Reveal Daily Word & Start Timer";
+            this.dom.targetWordDisplay.innerHTML = `
+                <button id="reveal-word-btn" class="reveal-word-btn" title="Reveal the word and start the solve timer">
+                    <span class="reveal-icon">👁️</span>
+                    <span>${btnLabel}</span>
+                </button>
+            `;
+            const revealBtn = document.getElementById("reveal-word-btn");
+            if (revealBtn) {
+                revealBtn.addEventListener("click", () => this.revealWordAndStart());
+            }
+            return;
+        }
+
         const matched = this.currentWord.slice(0, this.currentWordIndex);
         const remaining = this.currentWord.slice(this.currentWordIndex);
         this.dom.targetWordDisplay.innerHTML = `<span class="matched-chars">${matched}</span><span class="unmatched-chars">${remaining}</span>`;
@@ -338,6 +401,11 @@ class ElementSpellerGame {
     renderElementSlots() {
         if (!this.dom.elementSlotsRow) return;
         this.dom.elementSlotsRow.innerHTML = "";
+
+        if (!this.isWordRevealed) {
+            this.dom.elementSlotsRow.innerHTML = `<span class="empty-tiles-placeholder">Click 'Reveal Word & Start Timer' when you are ready!</span>`;
+            return;
+        }
 
         if (this.placedElements.length === 0) {
             this.dom.elementSlotsRow.innerHTML = `<span class="empty-tiles-placeholder">Enter elements from left to right to spell the word</span>`;
@@ -362,7 +430,7 @@ class ElementSpellerGame {
     }
 
     handleGuess() {
-        if (this.isGameOver) return;
+        if (!this.isWordRevealed || this.isGameOver) return;
         const inputVal = (this.dom.elementInput ? this.dom.elementInput.value : "").trim();
         if (!inputVal) return;
 
@@ -407,7 +475,7 @@ class ElementSpellerGame {
     }
 
     handleUndo() {
-        if (this.isGameOver || this.placedElements.length === 0) return;
+        if (!this.isWordRevealed || this.isGameOver || this.placedElements.length === 0) return;
         const removed = this.placedElements.pop();
         this.currentWordIndex -= removed.symbol.length;
 
@@ -424,8 +492,8 @@ class ElementSpellerGame {
     }
 
     async handleReset(confirmPrompt = true) {
-        if (confirmPrompt && (this.placedElements.length > 0 || this.isGameOver)) {
-            if (!confirm(`Reset ElementSpeller #${this.puzzleNumber}?\n\nThis will restart the solve timer so you can try again with a clean board!`)) {
+        if (confirmPrompt && (this.placedElements.length > 0 || this.isGameOver || this.isWordRevealed)) {
+            if (!confirm(`Reset ElementSpeller #${this.puzzleNumber}?\n\nThis will restart the puzzle so you can reveal and try again with a fresh timer!`)) {
                 return;
             }
         }
@@ -435,9 +503,12 @@ class ElementSpellerGame {
         }
 
         this.isGameOver = false;
+        this.isWordRevealed = false;
         this.placedElements = [];
         this.currentWordIndex = 0;
         this.solveTimeMs = null;
+        this.stopSolveTimer();
+        this.dom.liveTimerDisplay.textContent = "00:00.0";
 
         if (this.dom.undoBtn) this.dom.undoBtn.disabled = true;
         if (this.dom.solvedCard) this.dom.solvedCard.style.display = "none";
@@ -445,15 +516,18 @@ class ElementSpellerGame {
 
         this.renderTargetWord();
         this.renderElementSlots();
-        this.startSolveTimer();
-
-        this.dom.statusMessage.textContent = "Timer restarted! Enter elements from left to right.";
-        this.dom.statusMessage.className = "info";
 
         if (this.dom.elementInput) {
             this.dom.elementInput.value = "";
-            this.dom.elementInput.focus();
+            this.dom.elementInput.disabled = true;
+            this.dom.elementInput.placeholder = "Click 'Reveal Word & Start Timer' above to begin...";
         }
+        if (this.dom.submitBtn) {
+            this.dom.submitBtn.disabled = true;
+        }
+
+        this.dom.statusMessage.textContent = "Puzzle reset! Click 'Reveal Word & Start Timer' whenever you are ready.";
+        this.dom.statusMessage.className = "info";
 
         if (this.dom.archiveModal.classList.contains("active")) {
             this.renderCalendarView();

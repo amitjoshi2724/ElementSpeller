@@ -3,24 +3,12 @@
  * Offline-first localStorage with real-time Firestore cloud synchronization.
  * Supports timer-based solves, streaks, replay/reset, and calendar history.
  */
-import { initFirebase } from "./firebase-config.js";
+import { db } from "./firebase-config.js";
 import { onAuthChange, getCurrentUser } from "./auth.js";
+import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-let firestoreDb = null;
-let firestoreFns = null;
-
-// Initialize Firestore if running on http/https
-(async () => {
-    try {
-        const fb = await initFirebase();
-        if (fb && fb.db) {
-            firestoreDb = fb.db;
-            firestoreFns = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-        }
-    } catch (e) {
-        console.warn("Firestore unavailable, running in local-storage-only mode:", e);
-    }
-})();
+const firestoreDb = db;
+const firestoreFns = { doc, getDoc, setDoc, onSnapshot };
 
 const STATS_KEY = "elementspeller_stats_v1";
 const HISTORY_KEY = "elementspeller_history_v1";
