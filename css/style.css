@@ -634,3 +634,152 @@ button.primary-btn:disabled {
     color: #ffffff;
     text-decoration: none;
 }
+
+/* ==========================================================================
+   Timer, Quick Controls & Dynamic Target Word Display
+   ========================================================================== */
+.timer-control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.stopwatch-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    border: 2px solid #9370db;
+    border-radius: 20px;
+    padding: 5px 14px;
+    box-shadow: 0 2px 6px rgba(75, 0, 130, 0.15);
+}
+
+.timer-icon {
+    font-size: 16px;
+}
+
+.live-timer-display {
+    font-family: monospace, -apple-system, sans-serif;
+    font-size: 17px;
+    font-weight: bold;
+    color: #4b0082;
+    letter-spacing: 0.5px;
+}
+
+.quick-action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.quick-action-btn {
+    background: #f7f2ff;
+    border: 1px solid #9370db;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #4b0082;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.quick-action-btn:hover:not(:disabled) {
+    background: #e6d8ff;
+    border-color: #4b0082;
+    transform: translateY(-1px);
+}
+
+.quick-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.quick-action-btn.reset {
+    background: #fff3e0;
+    color: #e65100;
+    border-color: #ff9800;
+}
+
+.quick-action-btn.reset:hover:not(:disabled) {
+    background: #ffe0b2;
+    border-color: #e65100;
+}
+
+/* Matched vs Unmatched Letters in Target Word Display */
+.matched-chars {
+    color: #2e7d32;
+    text-decoration: underline wavy #4caf50 2px;
+    transition: color 0.3s;
+}
+
+.unmatched-chars {
+    color: #4b0082;
+}
+
+/* Dynamic element tiles container placeholder */
+.empty-tiles-placeholder {
+    font-size: 14px;
+    color: #9370db;
+    font-style: italic;
+    padding: 10px 0;
+}
+
+/* Solved Card */
+.solved-card {
+    background: linear-gradient(135deg, #f0fff4, #e8f5e9);
+    border: 2px solid #2e7d32;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2);
+    animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.solved-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #1b5e20;
+    margin-bottom: 4px;
+}
+
+.solved-time-stat {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2e7d32;
+    margin-bottom: 12px;
+    font-family: monospace, sans-serif;
+}
+
+.solved-btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Shake Animation for Invalid Guess */
+@keyframes shakeError {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.shake-error {
+    animation: shakeError 0.4s ease;
+}

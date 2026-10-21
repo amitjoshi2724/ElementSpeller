@@ -359,3 +359,229 @@
     gap: 6px;
     margin-top: 8px;
 }
+
+/* Mastermindle-Style Calendar & Tabs for Archive */
+.archive-modal-card {
+    max-width: 580px;
+    width: 95%;
+}
+
+.archive-view-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #e0d4f5;
+    padding-bottom: 10px;
+}
+
+.archive-tab-btn {
+    background-color: #f7f2ff;
+    border: 1px solid #d8bfd8;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13.5px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    color: #4b0082;
+    transition: all 0.2s;
+}
+
+.archive-tab-btn.active {
+    background-color: #9370db;
+    color: white;
+    border-color: #4b0082;
+    box-shadow: 0 2px 6px rgba(147, 112, 219, 0.35);
+}
+
+/* Calendar Navigation Bar */
+.calendar-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #faf7ff;
+    border: 1px solid #d8bfd8;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.calendar-selectors-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.calendar-select {
+    background-color: #ffffff;
+    border: 1px solid #9370db;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #4b0082;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+}
+
+.calendar-nav-btn {
+    background-color: #ffffff;
+    border: 1px solid #9370db;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: inherit;
+    color: #4b0082;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.calendar-nav-btn:hover:not(:disabled) {
+    background-color: #f0e6ff;
+    border-color: #4b0082;
+}
+
+.calendar-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* Weekday column headers */
+.calendar-weekdays-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    color: #8a2be2;
+    margin-bottom: 6px;
+}
+
+/* Calendar Month Grid - Fixed 6 Rows (42 Cells) for Rock-Solid Stability */
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 4px;
+    min-height: 350px;
+    box-sizing: border-box;
+}
+
+.calendar-day-cell {
+    background-color: #ffffff;
+    border: 1px solid #d8bfd8;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 2px;
+    box-sizing: border-box;
+    cursor: pointer;
+    color: inherit;
+    transition: transform 0.1s, box-shadow 0.1s;
+    position: relative;
+    user-select: none;
+    min-height: 52px;
+    font-family: inherit;
+}
+
+.calendar-day-cell:hover:not(.is-empty):not(.is-future) {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(75, 0, 130, 0.2);
+    z-index: 2;
+    border-color: #4b0082;
+}
+
+.calendar-day-cell.is-empty {
+    background: transparent;
+    border-color: transparent;
+    cursor: default;
+    pointer-events: none;
+}
+
+.calendar-day-cell.is-future {
+    background-color: #f5f5f5;
+    color: #aaa;
+    border-color: #e0e0e0;
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.calendar-day-cell.is-today {
+    border: 2px solid #ff7b00;
+    box-shadow: 0 0 0 1px #ffaa44;
+}
+
+.cal-day-num {
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.cal-puzzle-num {
+    font-size: 10px;
+    color: #8a2be2;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.cal-status-tag {
+    font-size: 10.5px;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+/* Status colors in calendar */
+.calendar-day-cell.status-won {
+    background-color: #e8f5e9;
+    border-color: #2e7d32;
+    color: #1b5e20;
+}
+
+.calendar-day-cell.status-won .cal-puzzle-num {
+    color: #2e7d32;
+}
+
+.calendar-day-cell.status-unplayed {
+    background-color: #ffffff;
+    border-color: #d8bfd8;
+}
+
+/* Archive List Controls */
+.archive-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.archive-search-input {
+    padding: 7px 12px;
+    border: 1px solid #9370db;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    flex: 1;
+    min-width: 160px;
+    outline: none;
+}
+
+.archive-search-input:focus {
+    border-color: #4b0082;
+    box-shadow: 0 0 5px rgba(75, 0, 130, 0.3);
+}

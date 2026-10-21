@@ -1,8 +1,20 @@
-import { elementData, symbols } from './elements.js';
-import { validateElementGuess, solveWord } from './speller.js';
-import { getDailyWord, getRandomWord, getTodayDateStr, getPuzzleNumber, getDateForPuzzleNumber, EPOCH_DATE_STR } from './prng.js';
-import { getStats, getHistory, getRecordForDate, recordCompletion, saveActiveState, loadActiveState, onStorageChange } from './storage.js';
-import './auth.js';
+import { elementData, symbols } from "./elements.js";
+import { validateElementGuess, solveWord } from "./speller.js";
+import { getDailyWord, getRandomWord, getTodayDateStr, getPuzzleNumber, getDateForPuzzleNumber, EPOCH_DATE_STR, parseDate } from "./prng.js";
+import {
+    getStats,
+    getHistory,
+    getRecordForDate,
+    recordCompletion,
+    saveActiveState,
+    loadActiveState,
+    clearActiveState,
+    onStorageChange,
+    resetDailyGameResult,
+    formatTimeMs,
+    getTimeBin
+} from "./storage.js";
+import "./auth.js";
 
 class ElementSpellerGame {
     constructor() {
@@ -10,329 +22,483 @@ class ElementSpellerGame {
         this.currentDateStr = this.todayStr;
         this.isPractice = false;
         
-        this.maxStrikes = 5;
-        this.strikes = 0;
-        this.currentWord = '';
+        this.currentWord = "";
         this.puzzleNumber = 1;
         this.placedElements = [];
         this.currentWordIndex = 0;
         this.isGameOver = false;
 
+        // Timer
+        this.startTime = null;
+        this.solveTimeMs = null;
+        this.timerInterval = null;
+
+        // Calendar Archive state
+        const todayDate = parseDate(this.todayStr);
+        this.calYear = todayDate.getFullYear();
+        this.calMonth = todayDate.getMonth();
+
         this.initDOM();
         this.initDatalist();
         this.initEventListeners();
+        this.setupArchiveTabs();
         this.startPuzzle(this.todayStr);
-        this.startCountdown();
+        this.startMidnightCountdown();
 
         onStorageChange(() => {
-            if (this.dom.statsModal && this.dom.statsModal.classList.contains('active')) {
+            if (this.dom.statsModal && this.dom.statsModal.classList.contains("active")) {
                 this.renderStatsModal();
             }
-            if (this.dom.archiveModal && this.dom.archiveModal.classList.contains('active')) {
-                this.renderArchiveModal();
+            if (this.dom.archiveModal && this.dom.archiveModal.classList.contains("active")) {
+                this.renderCalendarView();
+                this.renderArchiveList();
             }
         });
     }
 
     initDOM() {
         this.dom = {
-            puzzleTitle: document.getElementById('puzzle-meta-badge'),
-            targetWordDisplay: document.getElementById('target-word-display'),
-            elementSlotsRow: document.getElementById('element-slots-row'),
-            elementInput: document.getElementById('element-input'),
-            submitBtn: document.getElementById('submit-element-btn'),
-            statusMessage: document.getElementById('status-message'),
-            heartsRow: document.getElementById('hearts-row'),
-            strikesCount: document.getElementById('strikes-count'),
-            elementDetails: document.getElementById('element-details'),
-            modeTitle: document.getElementById('mode-title-text'),
+            puzzleTitle: document.getElementById("puzzle-meta-badge"),
+            targetWordDisplay: document.getElementById("target-word-display"),
+            elementSlotsRow: document.getElementById("element-slots-row"),
+            elementInput: document.getElementById("element-input"),
+            submitBtn: document.getElementById("submit-element-btn"),
+            statusMessage: document.getElementById("status-message"),
+            elementDetails: document.getElementById("element-details"),
+            modeTitle: document.getElementById("mode-title-text"),
+            liveTimerDisplay: document.getElementById("live-timer-display"),
+            stopwatchBadge: document.getElementById("stopwatch-badge"),
+            undoBtn: document.getElementById("undo-element-btn"),
+            resetBtn: document.getElementById("reset-puzzle-btn"),
+            inputGroupArea: document.getElementById("input-group-area"),
+
+            // Solved card
+            solvedCard: document.getElementById("solved-card"),
+            solvedTimeStat: document.getElementById("solved-time-stat"),
+            shareScoreQuickBtn: document.getElementById("share-score-quick-btn"),
+            solvedReplayBtn: document.getElementById("solved-replay-btn"),
 
             // Modals
-            howToPlayModal: document.getElementById('how-to-play-modal'),
-            statsModal: document.getElementById('stats-modal'),
-            archiveModal: document.getElementById('archive-modal'),
+            howToPlayModal: document.getElementById("how-to-play-modal"),
+            statsModal: document.getElementById("stats-modal"),
+            archiveModal: document.getElementById("archive-modal"),
             
             // Stats elements
-            statPlayed: document.getElementById('stat-played'),
-            statWinPct: document.getElementById('stat-win-pct'),
-            statStreak: document.getElementById('stat-streak'),
-            statMaxStreak: document.getElementById('stat-max-streak'),
-            distBarsContainer: document.getElementById('dist-bars-container'),
-            nextCountdown: document.getElementById('next-countdown-val'),
-            shareBtn: document.getElementById('share-btn'),
-            archiveList: document.getElementById('archive-list')
+            statPlayed: document.getElementById("stat-played"),
+            statWinPct: document.getElementById("stat-win-pct"),
+            statStreak: document.getElementById("stat-streak"),
+            statBestTime: document.getElementById("stat-best-time"),
+            distBarsContainer: document.getElementById("dist-bars-container"),
+            nextCountdown: document.getElementById("next-countdown-val"),
+            shareBtn: document.getElementById("share-btn"),
+            statsRetryBtn: document.getElementById("stats-retry-btn"),
+
+            // Archive elements
+            archiveTabCal: document.getElementById("archive-tab-calendar"),
+            archiveTabList: document.getElementById("archive-tab-list"),
+            calView: document.getElementById("archive-calendar-view"),
+            listView: document.getElementById("archive-list-view"),
+            calPrevBtn: document.getElementById("cal-prev-month-btn"),
+            calNextBtn: document.getElementById("cal-next-month-btn"),
+            calTodayBtn: document.getElementById("cal-today-btn"),
+            calMonthSelect: document.getElementById("cal-month-select"),
+            calYearSelect: document.getElementById("cal-year-select"),
+            calDaysContainer: document.getElementById("calendar-days-container"),
+            archiveSearchInput: document.getElementById("archive-search"),
+            archiveListContainer: document.getElementById("archive-list-container")
         };
     }
 
     initDatalist() {
-        const datalist = document.getElementById('elements-datalist');
+        const datalist = document.getElementById("elements-datalist");
         if (!datalist) return;
-        datalist.innerHTML = '';
-        // Populate datalist with element names and symbols
-        for (const [sym, data] of Object.entries(elementData)) {
-            const opt = document.createElement('option');
-            opt.value = data.name;
-            opt.label = `${sym} - Atomic #${data.number}`;
-            datalist.appendChild(opt);
+        datalist.innerHTML = "";
+
+        // Populate with symbol and full element name
+        for (const sym of symbols) {
+            const data = elementData[sym];
+            if (!data) continue;
+            const optName = document.createElement("option");
+            optName.value = data.name;
+            optName.label = `[${sym}] ${data.name} (#${data.number})`;
+            datalist.appendChild(optName);
+
+            const optSym = document.createElement("option");
+            optSym.value = sym;
+            optSym.label = `[${sym}] ${data.name} (#${data.number})`;
+            datalist.appendChild(optSym);
         }
     }
 
     initEventListeners() {
-        this.dom.submitBtn.addEventListener('click', () => this.handleGuess());
-        this.dom.elementInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.handleGuess();
-            }
-        });
+        // Submit on button click
+        if (this.dom.submitBtn) {
+            this.dom.submitBtn.addEventListener("click", () => this.handleGuess());
+        }
 
-        // Top Navigation buttons
-        document.getElementById('open-help-btn')?.addEventListener('click', () => this.openModal(this.dom.howToPlayModal));
-        document.getElementById('open-stats-btn')?.addEventListener('click', () => {
-            this.renderStatsModal();
-            this.openModal(this.dom.statsModal);
-        });
-        document.getElementById('open-archive-btn')?.addEventListener('click', () => {
-            this.renderArchiveModal('all');
-            this.openModal(this.dom.archiveModal);
-        });
-        document.getElementById('toggle-mode-btn')?.addEventListener('click', () => this.togglePracticeMode());
+        // Submit on Enter key in input
+        if (this.dom.elementInput) {
+            this.dom.elementInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    this.handleGuess();
+                }
+            });
+        }
 
-        // Modal Close buttons
-        document.querySelectorAll('.modal-close-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const overlay = e.target.closest('.modal-overlay');
+        // Undo & Reset buttons
+        if (this.dom.undoBtn) {
+            this.dom.undoBtn.addEventListener("click", () => this.handleUndo());
+        }
+        if (this.dom.resetBtn) {
+            this.dom.resetBtn.addEventListener("click", () => this.handleReset(true));
+        }
+        if (this.dom.solvedReplayBtn) {
+            this.dom.solvedReplayBtn.addEventListener("click", () => this.handleReset(false));
+        }
+        if (this.dom.statsRetryBtn) {
+            this.dom.statsRetryBtn.addEventListener("click", () => {
+                this.closeModal(this.dom.statsModal);
+                this.handleReset(true);
+            });
+        }
+
+        // Share buttons
+        if (this.dom.shareBtn) {
+            this.dom.shareBtn.addEventListener("click", () => this.copyShareCard());
+        }
+        if (this.dom.shareScoreQuickBtn) {
+            this.dom.shareScoreQuickBtn.addEventListener("click", () => this.copyShareCard());
+        }
+
+        // Toggle Practice vs Daily Mode
+        const toggleBtn = document.getElementById("toggle-mode-btn");
+        if (toggleBtn) {
+            toggleBtn.addEventListener("click", () => {
+                this.isPractice = !this.isPractice;
+                toggleBtn.innerHTML = this.isPractice
+                    ? "<span>📅 Daily Mode</span>"
+                    : "<span>♾️ Practice Mode</span>";
+                this.startPuzzle(this.isPractice ? null : this.todayStr, this.isPractice);
+            });
+        }
+
+        // Modals Open Buttons
+        const openHelpBtn = document.getElementById("open-help-btn");
+        if (openHelpBtn) {
+            openHelpBtn.addEventListener("click", () => this.openModal(this.dom.howToPlayModal));
+        }
+
+        const openStatsBtn = document.getElementById("open-stats-btn");
+        if (openStatsBtn) {
+            openStatsBtn.addEventListener("click", () => {
+                this.renderStatsModal();
+                this.openModal(this.dom.statsModal);
+            });
+        }
+
+        const openArchiveBtn = document.getElementById("open-archive-btn");
+        if (openArchiveBtn) {
+            openArchiveBtn.addEventListener("click", () => {
+                this.renderCalendarView();
+                this.renderArchiveList();
+                this.openModal(this.dom.archiveModal);
+            });
+        }
+
+        // Modals Close handlers
+        document.querySelectorAll(".modal-close-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const overlay = e.target.closest(".modal-overlay");
                 if (overlay) this.closeModal(overlay);
             });
         });
 
-        // Close on clicking backdrop
-        document.querySelectorAll('.modal-overlay').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) this.closeModal(modal);
+        document.querySelectorAll(".modal-overlay").forEach(overlay => {
+            overlay.addEventListener("click", (e) => {
+                if (e.target === overlay) this.closeModal(overlay);
             });
         });
 
-        // Share button
-        this.dom.shareBtn?.addEventListener('click', () => this.copyShareCard());
-
-        // Archive filters
-        document.querySelectorAll('.archive-filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.archive-filter-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                this.renderArchiveModal(e.target.dataset.filter);
-            });
+        // Close modal on Escape
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                document.querySelectorAll(".modal-overlay.active").forEach(m => this.closeModal(m));
+            }
         });
-    }
-
-    openModal(modal) {
-        if (modal) modal.classList.add('active');
-    }
-
-    closeModal(modal) {
-        if (modal) modal.classList.remove('active');
     }
 
     startPuzzle(dateStr, isPractice = false) {
-        this.currentDateStr = dateStr;
         this.isPractice = isPractice;
-        this.strikes = 0;
+        this.isGameOver = false;
         this.placedElements = [];
         this.currentWordIndex = 0;
-        this.isGameOver = false;
+        this.solveTimeMs = null;
+        this.stopSolveTimer();
+
+        if (this.dom.undoBtn) this.dom.undoBtn.disabled = true;
+        if (this.dom.solvedCard) this.dom.solvedCard.style.display = "none";
+        if (this.dom.inputGroupArea) this.dom.inputGroupArea.style.display = "block";
 
         let puzzleInfo;
         if (isPractice) {
             puzzleInfo = getRandomWord();
+            this.currentDateStr = null;
             this.currentWord = puzzleInfo.word;
-            this.puzzleNumber = 'Practice';
-            this.dom.puzzleTitle.textContent = `🧪 Practice Mode • Random Word`;
-            this.dom.modeTitle.textContent = `🧪 ElementSpeller (Practice)`;
+            this.puzzleNumber = "Practice";
+            this.dom.puzzleTitle.textContent = "🧪 Practice Mode • Random Word";
+            this.dom.modeTitle.textContent = "🧪 ElementSpeller (Practice)";
         } else {
+            this.currentDateStr = dateStr;
             puzzleInfo = getDailyWord(dateStr);
             this.currentWord = puzzleInfo.word;
             this.puzzleNumber = puzzleInfo.puzzleNumber;
-            const isToday = (dateStr === this.todayStr);
+
+            const isToday = dateStr === this.todayStr;
             this.dom.puzzleTitle.textContent = isToday
                 ? `📅 Daily Puzzle #${this.puzzleNumber} • ${dateStr}`
                 : `📅 Past Puzzle #${this.puzzleNumber} • ${dateStr}`;
             this.dom.modeTitle.textContent = `🧪 ElementSpeller #${this.puzzleNumber}`;
         }
 
+        // Render target word and dynamic element slots
+        this.renderTargetWord();
+        this.renderElementSlots();
+
         // Check if previously completed
-        const pastRecord = (!this.isPractice) ? getRecordForDate(dateStr) : null;
-        if (pastRecord) {
+        const existingRecord = !isPractice ? getRecordForDate(dateStr) : null;
+        if (existingRecord && existingRecord.won) {
             this.isGameOver = true;
-            this.strikes = pastRecord.strikes;
-            this.placedElements = pastRecord.elementsUsed || solveWord(this.currentWord) || [];
+            this.solveTimeMs = existingRecord.solveTimeMs || 0;
+            this.placedElements = existingRecord.elementsUsed || solveWord(this.currentWord) || [];
             this.currentWordIndex = this.currentWord.length;
-            this.renderSlots();
-            this.updateStrikesUI();
-            this.dom.elementInput.disabled = true;
-            this.dom.submitBtn.disabled = true;
-            if (pastRecord.won) {
-                this.setStatus(`✅ You solved this puzzle with ${pastRecord.strikes} strike${pastRecord.strikes === 1 ? '' : 's'}!`, 'success');
-            } else {
-                this.setStatus(`❌ Puzzle completed previously (Game Over).`, 'error');
+
+            this.renderTargetWord();
+            this.renderElementSlots();
+            this.dom.liveTimerDisplay.textContent = this.formatElapsed(this.solveTimeMs);
+            this.dom.statusMessage.textContent = `⭐ Solved on this date in ${formatTimeMs(this.solveTimeMs)}!`;
+            this.dom.statusMessage.className = "success";
+            
+            if (this.dom.solvedCard) {
+                this.dom.solvedCard.style.display = "block";
+                this.dom.solvedTimeStat.textContent = `Best Time: ${formatTimeMs(this.solveTimeMs)}`;
             }
+            if (this.dom.inputGroupArea) this.dom.inputGroupArea.style.display = "none";
             return;
         }
 
-        // Restore active state if playing today's puzzle
-        const saved = (!this.isPractice && dateStr === this.todayStr) ? loadActiveState(dateStr) : null;
-        if (saved && saved.currentWord === this.currentWord) {
-            this.strikes = saved.strikes || 0;
-            this.placedElements = saved.placedElements || [];
-            this.currentWordIndex = saved.currentWordIndex || 0;
+        // Start active stopwatch
+        this.startSolveTimer();
+        this.dom.statusMessage.textContent = "Timer running! Enter elements from left to right to spell the word.";
+        this.dom.statusMessage.className = "info";
+
+        if (this.dom.elementInput) {
+            this.dom.elementInput.value = "";
+            this.dom.elementInput.focus();
         }
-
-        this.dom.elementInput.disabled = false;
-        this.dom.submitBtn.disabled = false;
-        this.dom.elementInput.value = '';
-        this.dom.elementInput.focus();
-        this.setStatus('Enter the first element to begin spelling!', 'info');
-
-        this.renderSlots();
-        this.updateStrikesUI();
-        this.resetElementDetails();
     }
 
-    renderSlots() {
-        this.dom.targetWordDisplay.textContent = this.currentWord;
-        this.dom.elementSlotsRow.innerHTML = '';
+    startSolveTimer() {
+        this.stopSolveTimer();
+        this.startTime = Date.now();
+        this.tickSolveTimer();
+        this.timerInterval = setInterval(() => this.tickSolveTimer(), 100);
+    }
 
-        // Render filled elements
-        this.placedElements.forEach((elem, idx) => {
-            const slot = document.createElement('div');
-            slot.className = 'element-slot filled';
-            slot.innerHTML = `
+    stopSolveTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    tickSolveTimer() {
+        if (!this.startTime) return;
+        const elapsed = Date.now() - this.startTime;
+        if (this.dom.liveTimerDisplay) {
+            this.dom.liveTimerDisplay.textContent = this.formatElapsed(elapsed);
+        }
+    }
+
+    formatElapsed(ms) {
+        const totalSec = Math.max(0, ms / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const secs = Math.floor(totalSec % 60);
+        const tenths = Math.floor((totalSec * 10) % 10);
+        return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${tenths}`;
+    }
+
+    renderTargetWord() {
+        if (!this.dom.targetWordDisplay) return;
+        const matched = this.currentWord.slice(0, this.currentWordIndex);
+        const remaining = this.currentWord.slice(this.currentWordIndex);
+        this.dom.targetWordDisplay.innerHTML = `<span class="matched-chars">${matched}</span><span class="unmatched-chars">${remaining}</span>`;
+    }
+
+    renderElementSlots() {
+        if (!this.dom.elementSlotsRow) return;
+        this.dom.elementSlotsRow.innerHTML = "";
+
+        if (this.placedElements.length === 0) {
+            this.dom.elementSlotsRow.innerHTML = `<span class="empty-tiles-placeholder">Enter elements from left to right to spell the word</span>`;
+            return;
+        }
+
+        for (let i = 0; i < this.placedElements.length; i++) {
+            const elem = this.placedElements[i];
+            const tile = document.createElement("div");
+            tile.className = "element-slot filled";
+            tile.dataset.symbol = elem.symbol;
+            tile.innerHTML = `
+                <span class="slot-num">${elem.number}</span>
                 <span class="slot-symbol">${elem.symbol}</span>
                 <span class="slot-name">${elem.name}</span>
-                <span class="slot-number">#${elem.number}</span>
             `;
-            slot.addEventListener('click', () => this.showElementDetails(elem));
-            this.dom.elementSlotsRow.appendChild(slot);
-        });
 
-        // Estimate remaining slots needed
-        if (!this.isGameOver) {
-            const remaining = this.currentWord.slice(this.currentWordIndex);
-            if (remaining.length > 0) {
-                const solution = solveWord(remaining);
-                const remainingSlotsCount = solution ? solution.length : Math.ceil(remaining.length / 2);
-                for (let i = 0; i < remainingSlotsCount; i++) {
-                    const slot = document.createElement('div');
-                    slot.className = 'element-slot empty';
-                    slot.innerHTML = `<span>?</span>`;
-                    this.dom.elementSlotsRow.appendChild(slot);
-                }
-            }
+            tile.addEventListener("mouseenter", () => this.showElementDetails(elem));
+            tile.addEventListener("click", () => this.showElementDetails(elem));
+            this.dom.elementSlotsRow.appendChild(tile);
         }
     }
 
     handleGuess() {
         if (this.isGameOver) return;
-        const inputVal = this.dom.elementInput.value.trim();
+        const inputVal = (this.dom.elementInput ? this.dom.elementInput.value : "").trim();
         if (!inputVal) return;
 
-        const result = validateElementGuess(this.currentWord, this.currentWordIndex, inputVal);
+        const validation = validateElementGuess(this.currentWord, this.currentWordIndex, inputVal);
 
-        if (result.valid) {
-            this.placedElements.push(result.element);
-            this.currentWordIndex = result.nextIndex;
-            this.dom.elementInput.value = '';
-            this.setStatus(`✅ Correct! "${result.element.name}" (${result.element.symbol}) locked in!`, 'success');
-            this.showElementDetails(result.element);
-            this.renderSlots();
+        if (!validation.valid) {
+            // No strikes! Show feedback and shake
+            this.dom.statusMessage.textContent = validation.reason || `"${inputVal}" does not match the next letters!`;
+            this.dom.statusMessage.className = "error";
 
-            if (!this.isPractice) {
-                saveActiveState(this.currentDateStr, {
-                    currentWord: this.currentWord,
-                    strikes: this.strikes,
-                    placedElements: this.placedElements,
-                    currentWordIndex: this.currentWordIndex
-                });
+            if (this.dom.elementInput) {
+                this.dom.elementInput.classList.remove("shake-error");
+                void this.dom.elementInput.offsetWidth; // Force reflow
+                this.dom.elementInput.classList.add("shake-error");
+                this.dom.elementInput.select();
             }
+            return;
+        }
 
-            // Check Win Condition
-            if (this.currentWordIndex >= this.currentWord.length) {
-                this.handleWin();
-            }
+        // Valid element guess
+        const elem = validation.element;
+        this.placedElements.push(elem);
+        this.currentWordIndex = validation.nextIndex;
+
+        if (this.dom.undoBtn) this.dom.undoBtn.disabled = false;
+        this.renderTargetWord();
+        this.renderElementSlots();
+        this.showElementDetails(elem);
+
+        if (this.dom.elementInput) {
+            this.dom.elementInput.value = "";
+            this.dom.elementInput.focus();
+        }
+
+        // Check if fully spelled
+        if (this.currentWordIndex >= this.currentWord.length) {
+            this.handleSolveVictory();
         } else {
-            this.strikes++;
-            this.updateStrikesUI();
-            this.setStatus(`❌ ${result.reason}`, 'error');
-            this.dom.elementInput.select();
-
-            if (result.element) {
-                this.showElementDetails(result.element);
-            }
-
-            if (!this.isPractice) {
-                saveActiveState(this.currentDateStr, {
-                    currentWord: this.currentWord,
-                    strikes: this.strikes,
-                    placedElements: this.placedElements,
-                    currentWordIndex: this.currentWordIndex
-                });
-            }
-
-            // Check Loss Condition
-            if (this.strikes >= this.maxStrikes) {
-                this.handleLoss();
-            }
+            this.dom.statusMessage.textContent = `Added [${elem.symbol}] ${elem.name}! Keep spelling!`;
+            this.dom.statusMessage.className = "success";
         }
     }
 
-    handleWin() {
+    handleUndo() {
+        if (this.isGameOver || this.placedElements.length === 0) return;
+        const removed = this.placedElements.pop();
+        this.currentWordIndex -= removed.symbol.length;
+
+        if (this.dom.undoBtn) this.dom.undoBtn.disabled = (this.placedElements.length === 0);
+        this.renderTargetWord();
+        this.renderElementSlots();
+
+        this.dom.statusMessage.textContent = `Undid [${removed.symbol}] ${removed.name}.`;
+        this.dom.statusMessage.className = "info";
+
+        if (this.dom.elementInput) {
+            this.dom.elementInput.focus();
+        }
+    }
+
+    async handleReset(confirmPrompt = true) {
+        if (confirmPrompt && (this.placedElements.length > 0 || this.isGameOver)) {
+            if (!confirm(`Reset ElementSpeller #${this.puzzleNumber}?\n\nThis will restart the solve timer so you can try again with a clean board!`)) {
+                return;
+            }
+        }
+
+        if (!this.isPractice && this.currentDateStr) {
+            await resetDailyGameResult(this.currentDateStr);
+        }
+
+        this.isGameOver = false;
+        this.placedElements = [];
+        this.currentWordIndex = 0;
+        this.solveTimeMs = null;
+
+        if (this.dom.undoBtn) this.dom.undoBtn.disabled = true;
+        if (this.dom.solvedCard) this.dom.solvedCard.style.display = "none";
+        if (this.dom.inputGroupArea) this.dom.inputGroupArea.style.display = "block";
+
+        this.renderTargetWord();
+        this.renderElementSlots();
+        this.startSolveTimer();
+
+        this.dom.statusMessage.textContent = "Timer restarted! Enter elements from left to right.";
+        this.dom.statusMessage.className = "info";
+
+        if (this.dom.elementInput) {
+            this.dom.elementInput.value = "";
+            this.dom.elementInput.focus();
+        }
+
+        if (this.dom.archiveModal.classList.contains("active")) {
+            this.renderCalendarView();
+            this.renderArchiveList();
+        }
+    }
+
+    handleSolveVictory() {
         this.isGameOver = true;
-        this.dom.elementInput.disabled = true;
-        this.dom.submitBtn.disabled = true;
-        this.setStatus(`🎉 CONGRATULATIONS! You spelled ${this.currentWord} with ${this.placedElements.length} elements!`, 'success');
+        this.stopSolveTimer();
+        this.solveTimeMs = Math.max(100, Date.now() - this.startTime);
 
         if (!this.isPractice) {
-            recordCompletion(this.currentDateStr, this.puzzleNumber, this.currentWord, true, this.strikes, this.placedElements);
-            setTimeout(() => {
-                this.renderStatsModal();
-                this.openModal(this.dom.statsModal);
-            }, 750);
+            recordCompletion(
+                this.currentDateStr,
+                this.puzzleNumber,
+                this.currentWord,
+                true,
+                this.placedElements,
+                this.solveTimeMs
+            );
         }
-    }
 
-    handleLoss() {
-        this.isGameOver = true;
-        this.dom.elementInput.disabled = true;
-        this.dom.submitBtn.disabled = true;
+        const formatted = formatTimeMs(this.solveTimeMs);
+        this.dom.statusMessage.textContent = `🎉 Fantastic! Solved in ${formatted}!`;
+        this.dom.statusMessage.className = "success";
 
-        // Reveal full solution
-        const solution = solveWord(this.currentWord);
-        this.placedElements = solution || this.placedElements;
-        this.renderSlots();
-
-        this.setStatus(`💀 Game Over! You reached ${this.maxStrikes} strikes. Solution revealed above.`, 'error');
-
-        if (!this.isPractice) {
-            recordCompletion(this.currentDateStr, this.puzzleNumber, this.currentWord, false, this.strikes, this.placedElements);
-            setTimeout(() => {
-                this.renderStatsModal();
-                this.openModal(this.dom.statsModal);
-            }, 1000);
+        if (this.dom.solvedCard) {
+            this.dom.solvedCard.style.display = "block";
+            this.dom.solvedTimeStat.textContent = `Solved in ${formatted}`;
         }
-    }
+        if (this.dom.inputGroupArea) {
+            this.dom.inputGroupArea.style.display = "none";
+        }
 
-    updateStrikesUI() {
-        const remaining = Math.max(0, this.maxStrikes - this.strikes);
-        this.dom.heartsRow.textContent = '❤️'.repeat(remaining) + '🖤'.repeat(this.strikes);
-        this.dom.strikesCount.textContent = `Strikes: ${this.strikes}/${this.maxStrikes}`;
-    }
-
-    setStatus(msg, type = 'info') {
-        this.dom.statusMessage.textContent = msg;
-        this.dom.statusMessage.className = type;
+        // Open stats modal after brief celebration pause
+        setTimeout(() => {
+            this.renderStatsModal();
+            this.openModal(this.dom.statsModal);
+        }, 700);
     }
 
     showElementDetails(elem) {
+        if (!this.dom.elementDetails || !elem) return;
+        this.dom.elementDetails.classList.add("active");
         this.dom.elementDetails.innerHTML = `
             <div class="big-element">
                 <div class="element-symbol">${elem.symbol}</div>
@@ -342,77 +508,284 @@ class ElementSpellerGame {
         `;
     }
 
-    resetElementDetails() {
-        this.dom.elementDetails.innerHTML = `<span class="placeholder-text">Hover or click any element tile to view atomic details</span>`;
+    openModal(modal) {
+        if (modal) modal.classList.add("active");
     }
 
-    togglePracticeMode() {
-        if (this.isPractice) {
-            this.startPuzzle(this.todayStr, false);
-            document.getElementById('toggle-mode-btn').textContent = '♾️ Practice Mode';
-        } else {
-            this.startPuzzle(null, true);
-            document.getElementById('toggle-mode-btn').textContent = '📅 Daily Puzzle';
-        }
+    closeModal(modal) {
+        if (modal) modal.classList.remove("active");
     }
 
     renderStatsModal() {
         const stats = getStats();
-        this.dom.statPlayed.textContent = stats.played;
-        this.dom.statWinPct.textContent = stats.played > 0 ? `${Math.round((stats.won / stats.played) * 100)}%` : '0%';
-        this.dom.statStreak.textContent = stats.currentStreak;
-        this.dom.statMaxStreak.textContent = stats.maxStreak;
+        if (this.dom.statPlayed) this.dom.statPlayed.textContent = stats.played;
+        if (this.dom.statWinPct) this.dom.statWinPct.textContent = stats.played > 0 ? `${Math.round((stats.won / stats.played) * 100)}%` : "0%";
+        if (this.dom.statStreak) this.dom.statStreak.textContent = stats.currentStreak;
+        if (this.dom.statBestTime) this.dom.statBestTime.textContent = formatTimeMs(stats.bestTimeMs);
 
-        // Render Strikes Distribution
-        const dist = stats.distribution || {};
-        const maxCount = Math.max(1, ...Object.values(dist));
-        this.dom.distBarsContainer.innerHTML = [0, 1, 2, 3, 4, 5].map(strikes => {
-            const count = dist[String(strikes)] || 0;
-            const pct = count > 0 ? Math.max(12, Math.round((count / maxCount) * 100)) : 0;
-            const isCurrent = (!this.isPractice && this.isGameOver && this.strikes === strikes);
-            const fillClass = count > 0 ? (isCurrent ? 'dist-fill highlight' : 'dist-fill') : 'dist-fill zero';
-            return `
-                <div class="dist-row">
-                    <span class="dist-label">${strikes} strike${strikes === 1 ? '' : 's'}</span>
-                    <div class="dist-track">
-                        <div class="${fillClass}" style="${count > 0 ? `width: ${pct}%` : ''}">
-                            <span>${count}</span>
+        // Render Solve Time Distribution
+        if (this.dom.distBarsContainer) {
+            const dist = stats.distribution || {};
+            const maxCount = Math.max(1, ...Object.values(dist));
+            const bins = ["< 10s", "10-20s", "20-30s", "30-60s", "1-2m", "> 2m"];
+            const currentBin = this.isGameOver && this.solveTimeMs ? getTimeBin(this.solveTimeMs) : null;
+
+            this.dom.distBarsContainer.innerHTML = bins.map(bin => {
+                const count = dist[bin] || 0;
+                const pct = count > 0 ? Math.max(12, Math.round((count / maxCount) * 100)) : 0;
+                const isCurrent = (!this.isPractice && this.isGameOver && currentBin === bin);
+                const fillClass = count > 0 ? (isCurrent ? "dist-fill highlight" : "dist-fill") : "dist-fill zero";
+                return `
+                    <div class="dist-row">
+                        <span class="dist-label">${bin}</span>
+                        <div class="dist-track">
+                            <div class="${fillClass}" style="${count > 0 ? `width: ${pct}%` : ""}">
+                                <span>${count}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join("");
+        }
     }
 
-    renderArchiveModal(filter = 'all') {
+    copyShareCard() {
+        const puzzleTag = this.isPractice ? "ElementSpeller Practice" : `ElementSpeller #${this.puzzleNumber}`;
+        const timeStr = this.solveTimeMs ? `⏱️ ${formatTimeMs(this.solveTimeMs)}` : "⏱️ In Progress";
+        const elemBoxes = this.placedElements.map(e => `[${e.symbol}]`).join(" ");
+        const shareText = `🧪 ${puzzleTag} • ${timeStr}\n${elemBoxes}\nhttps://amitjoshi24.github.io/ElementSpeller/`;
+
+        navigator.clipboard.writeText(shareText).then(() => {
+            const btn = this.dom.shareBtn;
+            if (btn) btn.textContent = "✅ Copied to Clipboard!";
+            setTimeout(() => {
+                if (btn) btn.innerHTML = "<span>📋 Share Result</span>";
+            }, 2000);
+        }).catch(() => {
+            alert(shareText);
+        });
+    }
+
+    // ---------------------------------------------------------------------------
+    // Mastermindle-Style Calendar & List View Archive
+    // ---------------------------------------------------------------------------
+
+    setupArchiveTabs() {
+        if (this.dom.archiveTabCal && this.dom.archiveTabList) {
+            this.dom.archiveTabCal.onclick = () => {
+                this.dom.archiveTabCal.classList.add("active");
+                this.dom.archiveTabList.classList.remove("active");
+                this.dom.calView.style.display = "block";
+                this.dom.listView.style.display = "none";
+                this.renderCalendarView();
+            };
+
+            this.dom.archiveTabList.onclick = () => {
+                this.dom.archiveTabList.classList.add("active");
+                this.dom.archiveTabCal.classList.remove("active");
+                this.dom.listView.style.display = "block";
+                this.dom.calView.style.display = "none";
+                this.renderArchiveList();
+            };
+        }
+
+        // Year select
+        if (this.dom.calYearSelect) {
+            this.dom.calYearSelect.innerHTML = "";
+            const currentYear = parseDate(this.todayStr).getFullYear();
+            for (let y = currentYear; y >= 2025; y--) {
+                const opt = document.createElement("option");
+                opt.value = String(y);
+                opt.textContent = String(y);
+                this.dom.calYearSelect.appendChild(opt);
+            }
+            this.dom.calYearSelect.value = String(this.calYear);
+            this.dom.calYearSelect.onchange = (e) => {
+                this.calYear = Number(e.target.value);
+                this.renderCalendarView();
+            };
+        }
+
+        // Month select
+        if (this.dom.calMonthSelect) {
+            this.dom.calMonthSelect.value = String(this.calMonth);
+            this.dom.calMonthSelect.onchange = (e) => {
+                this.calMonth = Number(e.target.value);
+                this.renderCalendarView();
+            };
+        }
+
+        // Month navigation buttons
+        if (this.dom.calPrevBtn) {
+            this.dom.calPrevBtn.onclick = () => {
+                this.calMonth--;
+                if (this.calMonth < 0) {
+                    this.calMonth = 11;
+                    this.calYear--;
+                }
+                this.renderCalendarView();
+            };
+        }
+
+        if (this.dom.calNextBtn) {
+            this.dom.calNextBtn.onclick = () => {
+                this.calMonth++;
+                if (this.calMonth > 11) {
+                    this.calMonth = 0;
+                    this.calYear++;
+                }
+                this.renderCalendarView();
+            };
+        }
+
+        if (this.dom.calTodayBtn) {
+            this.dom.calTodayBtn.onclick = () => {
+                const t = parseDate(this.todayStr);
+                this.calYear = t.getFullYear();
+                this.calMonth = t.getMonth();
+                this.renderCalendarView();
+            };
+        }
+
+        // List view search & filter buttons
+        if (this.dom.archiveSearchInput) {
+            this.dom.archiveSearchInput.oninput = () => {
+                this.renderArchiveList(this.dom.archiveSearchInput.value);
+            };
+        }
+
+        document.querySelectorAll(".archive-filter-btn").forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll(".archive-filter-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                this.renderArchiveList(this.dom.archiveSearchInput ? this.dom.archiveSearchInput.value : "");
+            };
+        });
+    }
+
+    renderCalendarView() {
+        const container = this.dom.calDaysContainer;
+        if (!container) return;
+
+        const todayDate = parseDate(this.todayStr);
+
+        if (this.dom.calMonthSelect) this.dom.calMonthSelect.value = String(this.calMonth);
+        if (this.dom.calYearSelect) this.dom.calYearSelect.value = String(this.calYear);
+
+        // Disable Next when at or past today's month
+        if (this.dom.calNextBtn) {
+            const isFutureMonth =
+                this.calYear > todayDate.getFullYear() ||
+                (this.calYear === todayDate.getFullYear() && this.calMonth >= todayDate.getMonth());
+            this.dom.calNextBtn.disabled = isFutureMonth;
+        }
+
+        const firstDayIndex = new Date(this.calYear, this.calMonth, 1).getDay(); // 0 = Sunday
+        const totalDaysInMonth = new Date(this.calYear, this.calMonth + 1, 0).getDate();
+
         const history = getHistory();
-        const todayPuzzleNum = getPuzzleNumber(this.todayStr);
+        const cellsHtml = [];
+        const TOTAL_SLOTS = 42; // Fixed 6 weeks for layout stability
+
+        // Leading empty cells
+        for (let i = 0; i < firstDayIndex; i++) {
+            cellsHtml.push('<div class="calendar-day-cell is-empty"></div>');
+        }
+
+        // Day cells
+        for (let day = 1; day <= totalDaysInMonth; day++) {
+            const dateStr = `${this.calYear}-${String(this.calMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const isFuture = dateStr > this.todayStr;
+            const isToday = dateStr === this.todayStr;
+
+            if (isFuture) {
+                cellsHtml.push(`
+                    <div class="calendar-day-cell is-future">
+                        <div class="cal-day-num">${day}</div>
+                    </div>
+                `);
+                continue;
+            }
+
+            const pNum = getPuzzleNumber(dateStr);
+            const record = history[dateStr];
+
+            let statusClass = "status-unplayed";
+            let statusTag = "⚪";
+
+            if (record && record.won) {
+                statusClass = "status-won";
+                statusTag = `⭐ ${formatTimeMs(record.solveTimeMs)}`;
+            }
+
+            cellsHtml.push(`
+                <div class="calendar-day-cell ${statusClass} ${isToday ? "is-today" : ""}"
+                     data-date="${dateStr}" title="Puzzle #${pNum} — ${dateStr}">
+                    <div class="cal-day-num">${day}</div>
+                    <div class="cal-puzzle-num">#${pNum}</div>
+                    <div class="cal-status-tag">${statusTag}</div>
+                </div>
+            `);
+        }
+
+        // Trailing empty cells to fill 42 slots
+        const filled = firstDayIndex + totalDaysInMonth;
+        for (let i = filled; i < TOTAL_SLOTS; i++) {
+            cellsHtml.push('<div class="calendar-day-cell is-empty"></div>');
+        }
+
+        container.innerHTML = cellsHtml.join("");
+
+        // Click to load selected date puzzle
+        container.querySelectorAll(".calendar-day-cell:not(.is-empty):not(.is-future)").forEach(el => {
+            el.onclick = () => {
+                const date = el.dataset.date;
+                this.closeModal(this.dom.archiveModal);
+                this.startPuzzle(date, false);
+            };
+        });
+    }
+
+    renderArchiveList(searchFilter = "") {
+        const container = this.dom.archiveListContainer;
+        if (!container) return;
+
+        const history = getHistory();
+        const todayNum = getPuzzleNumber(this.todayStr);
+        const activeFilterBtn = document.querySelector(".archive-filter-btn.active");
+        const filterMode = activeFilterBtn ? activeFilterBtn.dataset.filter : "all";
+
         const items = [];
 
-        for (let pNum = todayPuzzleNum; pNum >= 1; pNum--) {
+        for (let pNum = todayNum; pNum >= 1; pNum--) {
             const dateStr = getDateForPuzzleNumber(pNum);
-            const rec = history[dateStr];
-            const isSolved = rec && rec.won;
-            const isPlayed = !!rec;
+            const record = history[dateStr];
+            const isSolved = record && record.won;
+            const isPlayed = !!record;
 
-            if (filter === 'won' && !isSolved) continue;
-            if (filter === 'unplayed' && isPlayed) continue;
+            if (filterMode === "solved" && !isSolved) continue;
+            if (filterMode === "unplayed" && isPlayed) continue;
 
-            items.push({ pNum, dateStr, rec, isSolved, isPlayed });
+            if (searchFilter) {
+                const query = searchFilter.toLowerCase();
+                if (!dateStr.includes(query) && !String(pNum).includes(query)) continue;
+            }
+
+            items.push({ pNum, dateStr, record, isSolved, isPlayed });
         }
 
         if (items.length === 0) {
-            this.dom.archiveList.innerHTML = `<div style="padding: 20px; color: #888;">No puzzles match this filter.</div>`;
+            container.innerHTML = '<div style="padding: 20px; color: #888; text-align: center;">No puzzles match this filter.</div>';
             return;
         }
 
-        this.dom.archiveList.innerHTML = items.map(item => {
-            const badgeClass = item.isSolved ? 'archive-status-badge won' : (item.isPlayed ? 'archive-status-badge error' : 'archive-status-badge unplayed');
-            const badgeText = item.isSolved ? `Solved (${item.rec.strikes}⚡)` : (item.isPlayed ? 'Missed 💀' : 'Unplayed');
+        container.innerHTML = items.map(item => {
+            const badgeClass = item.isSolved ? "archive-status-badge won" : "archive-status-badge unplayed";
+            const badgeText = item.isSolved ? `⭐ Solved (${formatTimeMs(item.record.solveTimeMs)})` : "⚪ Unplayed";
             return `
                 <div class="archive-item">
                     <div class="archive-meta">
-                        <span class="archive-pnum">Puzzle #${item.pNum}</span>
+                        <span class="archive-pnum">ElementSpeller #${item.pNum}</span>
                         <span class="archive-date">${item.dateStr}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -421,44 +794,25 @@ class ElementSpellerGame {
                     </div>
                 </div>
             `;
-        }).join('');
+        }).join("");
 
-        this.dom.archiveList.querySelectorAll('.archive-play-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        container.querySelectorAll(".archive-play-btn").forEach(btn => {
+            btn.onclick = (e) => {
                 const date = e.target.dataset.date;
                 this.closeModal(this.dom.archiveModal);
                 this.startPuzzle(date, false);
-            });
+            };
         });
     }
 
-    copyShareCard() {
-        const puzzleTag = this.isPractice ? `ElementSpeller Practice` : `ElementSpeller #${this.puzzleNumber}`;
-        const strikeEmoji = this.isGameOver && this.currentWordIndex >= this.currentWord.length
-            ? (this.strikes === 0 ? '🧪 Flawless (0 strikes)!' : `${this.strikes}/5 strikes`)
-            : '💀 X/5 strikes';
-
-        const elemBoxes = this.placedElements.map(e => `[${e.symbol}]`).join(' ');
-        const shareText = `🧪 ${puzzleTag} • ${strikeEmoji}\n${elemBoxes}\nhttps://amitjoshi24.github.io/ElementSpeller/`;
-
-        navigator.clipboard.writeText(shareText).then(() => {
-            this.dom.shareBtn.textContent = '✅ Copied to Clipboard!';
-            setTimeout(() => {
-                this.dom.shareBtn.innerHTML = '📋 Share Result';
-            }, 2000);
-        }).catch(() => {
-            alert(shareText);
-        });
-    }
-
-    startCountdown() {
+    startMidnightCountdown() {
         const update = () => {
             const now = new Date();
             const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
             const diffMs = tomorrow - now;
-            const hours = String(Math.floor(diffMs / (1000 * 60 * 60))).padStart(2, '0');
-            const minutes = String(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-            const seconds = String(Math.floor((diffMs % (1000 * 60)) / 1000)).padStart(2, '0');
+            const hours = String(Math.floor(diffMs / (1000 * 60 * 60))).padStart(2, "0");
+            const minutes = String(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, "0");
+            const seconds = String(Math.floor((diffMs % (1000 * 60)) / 1000)).padStart(2, "0");
             if (this.dom.nextCountdown) {
                 this.dom.nextCountdown.textContent = `${hours}:${minutes}:${seconds}`;
             }
@@ -468,7 +822,7 @@ class ElementSpellerGame {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     window.elementSpellerGame = new ElementSpellerGame();
     window.elementleGame = window.elementSpellerGame;
 });

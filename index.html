@@ -13,7 +13,7 @@
 </head>
 
 <body>
-    <!-- Top Navigation Bar (Mastermindle / Asteroidle Pattern) -->
+    <!-- Top Navigation Bar (Mastermindle Pattern) -->
     <nav class="mode-nav-bar" aria-label="Game navigation">
         <div class="mode-title">
             <span id="mode-title-text">🧪 ElementSpeller</span>
@@ -29,10 +29,10 @@
             <button id="toggle-mode-btn" class="nav-action-btn" title="Switch to unlimited practice words">
                 <span>♾️ Practice Mode</span>
             </button>
-            <button id="open-archive-btn" class="nav-action-btn" title="Browse past daily puzzles">
+            <button id="open-archive-btn" class="nav-action-btn" title="Browse calendar archive of past daily puzzles">
                 <span>📅 Archive</span>
             </button>
-            <button id="open-stats-btn" class="nav-action-btn" title="View your game stats">
+            <button id="open-stats-btn" class="nav-action-btn" title="View your solve times & stats">
                 <span>📊 Stats</span>
             </button>
             <button id="open-help-btn" class="nav-action-btn" title="How to play">
@@ -47,29 +47,47 @@
         <div class="beaker">🧪</div>
         <h1>ElementSpeller</h1>
         <div class="puzzle-meta-badge" id="puzzle-meta-badge">Loading Daily Puzzle...</div>
-        <p>Spell today's secret word by entering chemical elements in order!</p>
+        <p>Spell the target word using chemical elements as fast as you can!</p>
 
-        <!-- Target Word Display & Active Element Slots -->
+        <!-- Live Solve Stopwatch & Quick Action Controls -->
+        <div class="timer-control-row">
+            <div class="stopwatch-badge" id="stopwatch-badge" title="Solve timer (started when word appeared)">
+                <span class="timer-icon">⏱️</span>
+                <span id="live-timer-display" class="live-timer-display">00:00.0</span>
+            </div>
+            <div class="quick-action-group">
+                <button id="undo-element-btn" class="quick-action-btn" title="Undo last element" disabled>↩️ Undo</button>
+                <button id="reset-puzzle-btn" class="quick-action-btn reset" title="Reset this puzzle attempt & restart timer">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Target Word Display & Dynamic Placed Element Slots -->
         <div class="target-word-container">
             <div class="target-word-label">TARGET WORD</div>
             <div id="target-word-display" class="target-word-display">------</div>
             <div id="element-slots-row" class="element-slots-row">
-                <!-- Dynamically populated element tiles & placeholders -->
+                <!-- Dynamically populated with placed element tiles ONLY (no rigid ? placeholders) -->
+            </div>
+        </div>
+
+        <!-- Solved Completion Card -->
+        <div id="solved-card" class="solved-card" style="display: none;">
+            <div class="solved-title">🎉 Word Solved!</div>
+            <div class="solved-time-stat" id="solved-time-stat">Solved in 00:00.0</div>
+            <div class="solved-btn-row">
+                <button id="share-score-quick-btn" class="share-btn">📋 Share Result</button>
+                <button id="solved-replay-btn" class="quick-action-btn reset">🔄 Retry for Faster Time</button>
             </div>
         </div>
 
         <!-- Element Guess Input -->
-        <div class="input-group">
+        <div class="input-group" id="input-group-area">
             <div class="input-row">
-                <input type="text" id="element-input" list="elements-datalist" placeholder="Enter element name (e.g. Carbon, Iron, Neon)..." autocomplete="off" autofocus>
+                <input type="text" id="element-input" list="elements-datalist" placeholder="Enter element name or symbol (e.g. Carbon, C)..." autocomplete="off" autofocus>
                 <datalist id="elements-datalist">
                     <!-- Populated dynamically with all 118 periodic table elements -->
                 </datalist>
                 <button id="submit-element-btn" class="primary-btn">Submit Element</button>
-            </div>
-            <div class="strikes-container">
-                <span class="hearts-row" id="hearts-row">❤️❤️❤️❤️❤️</span>
-                <span id="strikes-count">Strikes: 0/5</span>
             </div>
         </div>
 
@@ -103,37 +121,37 @@
                 <button class="modal-close-btn" aria-label="Close modal">&times;</button>
             </div>
             <div class="rules-step">
+                <div class="rules-icon">⏱️</div>
+                <div>
+                    <strong>Speed is the objective!</strong> The timer starts running the moment the target word is shown. Try to spell the word completely as fast as possible.
+                </div>
+            </div>
+            <div class="rules-step">
                 <div class="rules-icon">🧪</div>
                 <div>
-                    <strong>Every day features a secret word</strong> from the dictionary that can be perfectly spelled using chemical element symbols from the Periodic Table.
+                    <strong>There are NO strikes or strikeouts!</strong> If you submit an element that doesn't match the next letters, you receive instant feedback with no strike penalty—just submit another element.
                 </div>
             </div>
             <div class="rules-step">
                 <div class="rules-icon">⚛️</div>
                 <div>
-                    <strong>Enter the chemical elements in order from left to right.</strong> You can type the full element name (e.g. <em>Barium</em>, <em>Carbon</em>, <em>Iron</em>) or its chemical symbol.
+                    <strong>Multiple valid spelling lengths:</strong> Words often have several different chemical breakdowns. For example:
+                    <div style="margin-top: 6px; padding: 6px 10px; background: #f0e6ff; border-radius: 6px; font-size: 13.5px;">
+                        • <strong>NO</strong> can be 1 element (<em>Nobelium</em> [<strong>No</strong>]) or 2 elements (<em>Nitrogen</em> [<strong>N</strong>] + <em>Oxygen</em> [<strong>O</strong>])<br>
+                        • <strong>BACON</strong> can be <em>Barium</em> [<strong>Ba</strong>] + <em>Carbon</em> [<strong>C</strong>] + <em>Oxygen</em> [<strong>O</strong>] + <em>Nitrogen</em> [<strong>N</strong>], or <em>Boron</em> [<strong>B</strong>] + <em>Actinium</em> [<strong>Ac</strong>] + <em>Oxygen</em> [<strong>O</strong>] + <em>Nitrogen</em> [<strong>N</strong>]
+                    </div>
                 </div>
-            </div>
-            <div class="example-box">
-                <div>Example for <strong>BACON</strong>:</div>
-                <div class="example-tiles">
-                    <span class="element-slot filled" style="transform:none;min-width:48px;height:54px;"><span class="slot-symbol">Ba</span><span class="slot-name">Barium</span></span>
-                    <span class="element-slot filled" style="transform:none;min-width:48px;height:54px;"><span class="slot-symbol">C</span><span class="slot-name">Carbon</span></span>
-                    <span class="element-slot filled" style="transform:none;min-width:48px;height:54px;"><span class="slot-symbol">O</span><span class="slot-name">Oxygen</span></span>
-                    <span class="element-slot filled" style="transform:none;min-width:48px;height:54px;"><span class="slot-symbol">N</span><span class="slot-name">Nitrogen</span></span>
-                </div>
-                <div style="font-size:12px;margin-top:6px;color:#8a2be2;">(Or Boron [B] + Actinium [Ac] + Oxygen [O] + Nitrogen [N])</div>
             </div>
             <div class="rules-step">
-                <div class="rules-icon">❤️</div>
+                <div class="rules-icon">🔄</div>
                 <div>
-                    <strong>Watch your strikes!</strong> You have 5 strikes allowed. If you guess an element that doesn't match the next letters, you lose a heart.
+                    <strong>Undo & Reset anytime:</strong> You can <strong>Undo</strong> your last element or <strong>Reset</strong> the entire puzzle at any point to restart the timer and aim for a new personal best!
                 </div>
             </div>
             <div class="rules-step">
                 <div class="rules-icon">📅</div>
                 <div>
-                    <strong>A new puzzle is released every day at midnight UTC!</strong> Past daily puzzles can be played anytime in the <strong>Archive</strong>.
+                    <strong>Calendar Archive:</strong> Browse the full monthly calendar of past daily puzzles in the <strong>Archive</strong>.
                 </div>
             </div>
             <div class="modal-kofi-bar">
@@ -146,7 +164,7 @@
         </div>
     </div>
 
-    <!-- Statistics Modal (Wordle / Mastermindle Style) -->
+    <!-- Statistics Modal (Wordle / Mastermindle Style with Solve Times) -->
     <div class="modal-overlay" id="stats-modal">
         <div class="modal-card">
             <div class="modal-header">
@@ -167,24 +185,29 @@
                     <div class="stat-lbl">CURRENT STREAK</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-val" id="stat-max-streak">0</div>
-                    <div class="stat-lbl">MAX STREAK</div>
+                    <div class="stat-val" id="stat-best-time">--</div>
+                    <div class="stat-lbl">BEST TIME</div>
                 </div>
             </div>
 
-            <div class="dist-section-title">STRIKES DISTRIBUTION</div>
+            <div class="dist-section-title">SOLVE TIME DISTRIBUTION</div>
             <div class="dist-bars" id="dist-bars-container">
                 <!-- Injected dynamically -->
             </div>
 
             <div class="modal-footer-box">
                 <div class="countdown-box">
-                    <span class="countdown-lbl">Next Daily Puzzle</span>
+                    <span class="countdown-lbl">Next Daily Puzzle In</span>
                     <span class="countdown-val" id="next-countdown-val">--:--:--</span>
                 </div>
-                <button class="share-btn" id="share-btn">
-                    <span>📋 Share Result</span>
-                </button>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="share-btn" id="share-btn">
+                        <span>📋 Share Result</span>
+                    </button>
+                    <button id="stats-retry-btn" class="quick-action-btn reset" style="padding: 10px 14px; font-size: 14px;">
+                        <span>🔄 Retry / Reset</span>
+                    </button>
+                </div>
             </div>
 
             <div class="modal-kofi-bar">
@@ -197,20 +220,73 @@
         </div>
     </div>
 
-    <!-- Past Puzzles Archive Modal (Semantle / Mastermindle Style) -->
+    <!-- Past Puzzles Archive Modal (Mastermindle Calendar & List View) -->
     <div class="modal-overlay" id="archive-modal">
-        <div class="modal-card">
+        <div class="modal-card archive-modal-card">
             <div class="modal-header">
-                <h3 class="modal-title">📅 Daily Puzzle Archive</h3>
+                <h3 class="modal-title">📅 ElementSpeller Archive</h3>
                 <button class="modal-close-btn" aria-label="Close modal">&times;</button>
             </div>
-            <div class="archive-filters">
-                <button class="archive-filter-btn active" data-filter="all">All Puzzles</button>
-                <button class="archive-filter-btn" data-filter="won">Solved 🧪</button>
-                <button class="archive-filter-btn" data-filter="unplayed">Unplayed</button>
+
+            <!-- View Switcher Tabs -->
+            <div class="archive-view-tabs">
+                <button id="archive-tab-calendar" class="archive-tab-btn active">📅 Calendar View</button>
+                <button id="archive-tab-list" class="archive-tab-btn">📋 List View</button>
             </div>
-            <div class="archive-list" id="archive-list">
-                <!-- Dynamically populated -->
+
+            <!-- VIEW 1: Calendar View (Default) -->
+            <div id="archive-calendar-view">
+                <div class="calendar-nav-bar">
+                    <button id="cal-prev-month-btn" class="calendar-nav-btn" title="Previous Month">◀ Prev</button>
+                    <div class="calendar-selectors-group">
+                        <select id="cal-month-select" class="calendar-select" aria-label="Select Month">
+                            <option value="0">January</option>
+                            <option value="1">February</option>
+                            <option value="2">March</option>
+                            <option value="3">April</option>
+                            <option value="4">May</option>
+                            <option value="5">June</option>
+                            <option value="6">July</option>
+                            <option value="7">August</option>
+                            <option value="8">September</option>
+                            <option value="9">October</option>
+                            <option value="10">November</option>
+                            <option value="11">December</option>
+                        </select>
+                        <select id="cal-year-select" class="calendar-select" aria-label="Select Year">
+                            <!-- Populated in JS -->
+                        </select>
+                        <button id="cal-today-btn" class="calendar-nav-btn">Today</button>
+                    </div>
+                    <button id="cal-next-month-btn" class="calendar-nav-btn" title="Next Month">Next ▶</button>
+                </div>
+
+                <div class="calendar-weekdays-grid">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+
+                <div id="calendar-days-container" class="calendar-days-grid">
+                    <!-- Dynamically generated day slots with Day #, Puzzle #, and solve time/status -->
+                </div>
+            </div>
+
+            <!-- VIEW 2: List View -->
+            <div id="archive-list-view" style="display: none;">
+                <div class="archive-controls">
+                    <input type="text" id="archive-search" class="archive-search-input" placeholder="Search by date (YYYY-MM-DD) or #...">
+                    <button class="archive-filter-btn active" data-filter="all">All</button>
+                    <button class="archive-filter-btn" data-filter="solved">Solved</button>
+                    <button class="archive-filter-btn" data-filter="unplayed">Unplayed</button>
+                </div>
+                <div id="archive-list-container" class="archive-list">
+                    <!-- Dynamically populated list -->
+                </div>
             </div>
         </div>
     </div>
