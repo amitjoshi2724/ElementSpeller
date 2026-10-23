@@ -195,6 +195,49 @@ h1 {
     border-color: #ef4444;
 }
 
+/* Matching element tile (letters match target word at this position) */
+.element-slot.filled.match {
+    border-color: #10b981;
+    background-color: #ecfdf5;
+    color: #065f46;
+}
+.element-slot.filled.match .slot-name {
+    color: #047857;
+}
+.element-slot.filled.match .slot-num {
+    color: #059669;
+}
+.element-slot.filled.match:hover {
+    background-color: #d1fae5;
+    box-shadow: 0 6px 14px rgba(16, 185, 129, 0.25);
+}
+
+/* Non-matching element tile (player placed freely, but letters differ from target) */
+.element-slot.filled.mismatch {
+    border-color: #f59e0b;
+    border-style: dashed;
+    background-color: #fffbeb;
+    color: #92400e;
+}
+.element-slot.filled.mismatch .slot-name {
+    color: #b45309;
+}
+.element-slot.filled.mismatch .slot-num {
+    color: #d97706;
+}
+.element-slot.filled.mismatch:hover {
+    background-color: #fef3c7;
+    box-shadow: 0 6px 14px rgba(245, 158, 11, 0.25);
+}
+
+/* Drag-over target indicator when reordering cards */
+.element-slot.filled.drop-target {
+    border: 2px dashed #4f46e5 !important;
+    background-color: #e0e7ff !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 8px 18px rgba(79, 70, 229, 0.35) !important;
+}
+
 /* Individual Tile Delete Button */
 .slot-delete-btn {
     position: absolute;

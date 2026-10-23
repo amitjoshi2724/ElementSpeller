@@ -3,12 +3,31 @@
  * Offline-first localStorage with real-time Firestore cloud synchronization.
  * Supports timer-based solves, streaks, replay/reset, and calendar history.
  */
-import { db } from "./firebase-config.js";
 import { onAuthChange, getCurrentUser } from "./auth.js";
-import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirebaseServices } from "./firebase-config.js";
 
-const firestoreDb = db;
-const firestoreFns = { doc, getDoc, setDoc, onSnapshot };
+let firestoreDb = null;
+let firestoreFns = null;
+
+async function loadFirestore() {
+    if (firestoreFns && firestoreDb) return { db: firestoreDb, fns: firestoreFns };
+    try {
+        const services = await getFirebaseServices();
+        if (!services || !services.isAvailable || !services.db) return null;
+        const firestoreModule = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        firestoreDb = services.db;
+        firestoreFns = {
+            doc: firestoreModule.doc,
+            getDoc: firestoreModule.getDoc,
+            setDoc: firestoreModule.setDoc,
+            onSnapshot: firestoreModule.onSnapshot
+        };
+        return { db: firestoreDb, fns: firestoreFns };
+    } catch (e) {
+        console.warn("Firestore unavailable offline:", e);
+        return null;
+    }
+}
 
 const STATS_KEY = "elementspeller_stats_v1";
 const HISTORY_KEY = "elementspeller_history_v1";
@@ -300,12 +319,14 @@ export function getRecordForDate(dateStr) {
  */
 async function syncToCloud() {
     const user = getCurrentUser();
-    if (!user || !firestoreDb || !firestoreFns) return;
+    if (!user) return;
+    const services = await loadFirestore();
+    if (!services || !services.db || !services.fns) return;
 
     try {
-        const userRef = firestoreFns.doc(firestoreDb, "users", user.uid);
+        const userRef = services.fns.doc(services.db, "users", user.uid);
         const cleanStats = sanitizeStats(memoryStats, memoryHistory);
-        await firestoreFns.setDoc(userRef, {
+        await services.fns.setDoc(userRef, {
             element_speller_stats: cleanStats,
             element_speller_history: memoryHistory,
             elementspeller_stats: cleanStats,
@@ -326,11 +347,13 @@ onAuthChange(async (user) => {
         firestoreUnsubscribe = null;
     }
 
-    if (!user || !firestoreDb || !firestoreFns) return;
+    if (!user) return;
+    const services = await loadFirestore();
+    if (!services || !services.db || !services.fns) return;
 
     try {
-        const userRef = firestoreFns.doc(firestoreDb, "users", user.uid);
-        const snap = await firestoreFns.getDoc(userRef);
+        const userRef = services.fns.doc(services.db, "users", user.uid);
+        const snap = await services.fns.getDoc(userRef);
 
         if (snap.exists()) {
             const cloudData = snap.data();
@@ -364,7 +387,7 @@ onAuthChange(async (user) => {
         }
 
         // Setup real-time listener for multi-tab or cross-device updates
-        firestoreUnsubscribe = firestoreFns.onSnapshot(userRef, (docSnap) => {
+        firestoreUnsubscribe = services.fns.onSnapshot(userRef, (docSnap) => {
             if (docSnap.exists()) {
                 const updated = docSnap.data();
                 const incomingHist = updated.element_speller_history || updated.elementspeller_history || updated.elementle_history;

@@ -9,6 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4b0082">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Element-Speller">
     <link rel="apple-touch-icon" href="images/icon-192.png">
@@ -19,7 +20,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/modals.css">
     <!-- Ko-fi Widget Script -->
-    <script src="https://storage.ko-fi.com/cdn/widget/Widget_2.js"></script>
+    <script async defer src="https://storage.ko-fi.com/cdn/widget/Widget_2.js"></script>
 </head>
 
 <body>
@@ -82,7 +83,7 @@
             </div>
 
             <div class="drag-hint-text" id="drag-hint-text">
-                <span>💡 <strong>Tip:</strong> Drag any element card to the 🗑️ trash can (or click &times;) to delete it at any time!</span>
+                <span>💡 <strong>Tip:</strong> Place any elements down freely! Drag cards to reorder them, or drag to 🗑️ trash (or click &times;) to delete.</span>
             </div>
         </div>
 
@@ -122,11 +123,13 @@
             <div class="algorithm">Built with Dynamic Programming</div>
             <div id="kofi-widget-container" style="display: flex; align-items: center; justify-content: center; margin-top: 14px;">
                 <script>
-                    try {
-                        kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'I2I81CDN0L');
-                        kofiwidget2.draw();
-                    } catch (e) {
-                        console.error('Ko-fi widget error:', e);
+                    if (window.kofiwidget2) {
+                        try {
+                            window.kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'I2I81CDN0L');
+                            window.kofiwidget2.draw();
+                        } catch (e) {
+                            console.error('Ko-fi widget error:', e);
+                        }
                     }
                 </script>
             </div>

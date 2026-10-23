@@ -1,5 +1,5 @@
-import { elementData, symbols } from "./elements.js";
-import { validateElementGuess, solveWord } from "./speller.js";
+import { elementData, symbols, nameToData, symbolToData } from "./elements.js";
+import { solveWord } from "./speller.js";
 import { getDailyWord, getRandomWord, getTodayDateStr, getPuzzleNumber, getDateForPuzzleNumber, EPOCH_DATE_STR, parseDate } from "./prng.js";
 import {
     getStats,
@@ -413,6 +413,16 @@ class ElementSpellerGame {
         return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${tenths}`;
     }
 
+    getMatchedPrefixLength() {
+        const spelled = this.placedElements.map(e => e.symbol).join("").toUpperCase();
+        const target = (this.currentWord || "").toUpperCase();
+        let len = 0;
+        while (len < target.length && len < spelled.length && target[len] === spelled[len]) {
+            len++;
+        }
+        return len;
+    }
+
     renderTargetWord() {
         if (!this.dom.targetWordDisplay) return;
 
@@ -431,8 +441,9 @@ class ElementSpellerGame {
             return;
         }
 
-        const matched = this.currentWord.slice(0, this.currentWordIndex);
-        const remaining = this.currentWord.slice(this.currentWordIndex);
+        const matchedLen = this.getMatchedPrefixLength();
+        const matched = this.currentWord.slice(0, matchedLen);
+        const remaining = this.currentWord.slice(matchedLen);
         this.dom.targetWordDisplay.innerHTML = `<span class="matched-chars">${matched}</span><span class="unmatched-chars">${remaining}</span>`;
     }
 
@@ -447,18 +458,28 @@ class ElementSpellerGame {
         }
 
         if (this.placedElements.length === 0) {
-            this.dom.elementSlotsRow.innerHTML = `<span class="empty-tiles-placeholder">Enter elements from left to right to spell the word</span>`;
+            this.dom.elementSlotsRow.innerHTML = `<span class="empty-tiles-placeholder">Enter any elements to spell the word (drag to reorder or delete)</span>`;
             return;
         }
 
+        let charOffset = 0;
+        const target = (this.currentWord || "").toUpperCase();
+
         for (let i = 0; i < this.placedElements.length; i++) {
             const elem = this.placedElements[i];
+            const sym = elem.symbol.toUpperCase();
+            const targetSlice = target.slice(charOffset, charOffset + sym.length);
+            const isMatch = (targetSlice === sym);
+            charOffset += sym.length;
+
             const tile = document.createElement("div");
-            tile.className = "element-slot filled";
+            tile.className = `element-slot filled ${isMatch ? "match" : "mismatch"}`;
             tile.dataset.symbol = elem.symbol;
             tile.dataset.index = i;
             tile.draggable = !this.isGameOver;
-            tile.title = `Drag to 🗑️ trash to delete ${elem.name}`;
+            tile.title = isMatch 
+                ? `${elem.name} (${elem.symbol}) matches "${sym}" — drag to reorder or 🗑️ to delete`
+                : `${elem.name} (${elem.symbol}) does not match "${targetSlice || 'end'}" — drag to reorder or 🗑️ to delete`;
 
             tile.innerHTML = `
                 <span class="slot-num">${elem.number}</span>
@@ -482,7 +503,7 @@ class ElementSpellerGame {
                 });
             }
 
-            // HTML5 Drag Events
+            // HTML5 Drag Events: Drag to Trash OR Drag onto another tile to reorder!
             tile.addEventListener("dragstart", (e) => {
                 this.draggedElementIndex = i;
                 e.dataTransfer.effectAllowed = "move";
@@ -496,11 +517,39 @@ class ElementSpellerGame {
 
             tile.addEventListener("dragend", () => {
                 tile.classList.remove("dragging");
+                document.querySelectorAll(".element-slot.drop-target").forEach(el => el.classList.remove("drop-target"));
                 if (this.dom.trashCanZone) {
                     this.dom.trashCanZone.classList.remove("drag-active", "drag-over");
                     if (this.dom.trashCanLabel) this.dom.trashCanLabel.textContent = "Drag element here to delete";
                 }
                 this.draggedElementIndex = null;
+            });
+
+            tile.addEventListener("dragover", (e) => {
+                if (this.isGameOver) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (this.draggedElementIndex !== null && this.draggedElementIndex !== i) {
+                    tile.classList.add("drop-target");
+                }
+            });
+
+            tile.addEventListener("dragleave", () => {
+                tile.classList.remove("drop-target");
+            });
+
+            tile.addEventListener("drop", (e) => {
+                if (this.isGameOver) return;
+                e.preventDefault();
+                tile.classList.remove("drop-target");
+                const fromIdx = this.draggedElementIndex;
+                if (fromIdx !== null && fromIdx !== i && fromIdx >= 0 && fromIdx < this.placedElements.length) {
+                    const movedItem = this.placedElements.splice(fromIdx, 1)[0];
+                    this.placedElements.splice(i, 0, movedItem);
+                    this.renderTargetWord();
+                    this.renderElementSlots();
+                    this.checkSolveVictory();
+                }
             });
 
             // Touch Screen Support (Mobile / Tablet dragging)
@@ -567,34 +616,17 @@ class ElementSpellerGame {
         if (deleteIndex < 0 || deleteIndex >= this.placedElements.length) return;
 
         const deletedElem = this.placedElements[deleteIndex];
-        const remainingCandidates = this.placedElements.filter((_, idx) => idx !== deleteIndex);
-
-        // Re-verify valid prefix of elements against currentWord
-        let curIndex = 0;
-        const validElements = [];
-        for (let i = 0; i < remainingCandidates.length; i++) {
-            const candidate = remainingCandidates[i];
-            const symLen = candidate.symbol.length;
-            const expectedSub = this.currentWord.slice(curIndex, curIndex + symLen).toLowerCase();
-            if (expectedSub === candidate.symbol.toLowerCase()) {
-                validElements.push(candidate);
-                curIndex += symLen;
-            } else {
-                // Subsequence no longer forms a valid contiguous spelling
-                break;
-            }
-        }
-
-        this.placedElements = validElements;
-        this.currentWordIndex = curIndex;
+        this.placedElements.splice(deleteIndex, 1);
 
         if (this.dom.undoBtn) this.dom.undoBtn.disabled = (this.placedElements.length === 0);
         this.renderTargetWord();
         this.renderElementSlots();
         this.updateTrashCanState();
 
-        this.dom.statusMessage.textContent = `Deleted [${deletedElem.symbol}] ${deletedElem.name} in trash.`;
+        this.dom.statusMessage.textContent = `Deleted [${deletedElem.symbol}] ${deletedElem.name}.`;
         this.dom.statusMessage.className = "info";
+
+        this.checkSolveVictory();
 
         if (this.dom.elementInput) {
             this.dom.elementInput.focus();
@@ -606,11 +638,12 @@ class ElementSpellerGame {
         const inputVal = (this.dom.elementInput ? this.dom.elementInput.value : "").trim();
         if (!inputVal) return;
 
-        const validation = validateElementGuess(this.currentWord, this.currentWordIndex, inputVal);
+        const clean = inputVal.toLowerCase();
+        // Lookup element by name or symbol
+        const elem = nameToData[clean] || symbolToData[clean];
 
-        if (!validation.valid) {
-            // No strikes! Show feedback and shake
-            this.dom.statusMessage.textContent = validation.reason || `"${inputVal}" does not match the next letters!`;
+        if (!elem) {
+            this.dom.statusMessage.textContent = `"${inputVal}" is not a recognized chemical element.`;
             this.dom.statusMessage.className = "error";
 
             if (this.dom.elementInput) {
@@ -622,10 +655,8 @@ class ElementSpellerGame {
             return;
         }
 
-        // Valid element guess
-        const elem = validation.element;
+        // Place element down freely - never ban or block!
         this.placedElements.push(elem);
-        this.currentWordIndex = validation.nextIndex;
 
         if (this.dom.undoBtn) this.dom.undoBtn.disabled = false;
         this.renderTargetWord();
@@ -637,26 +668,42 @@ class ElementSpellerGame {
             this.dom.elementInput.focus();
         }
 
-        // Check if fully spelled
-        if (this.currentWordIndex >= this.currentWord.length) {
+        this.checkSolveVictory();
+    }
+
+    checkSolveVictory() {
+        const spelled = this.placedElements.map(e => e.symbol).join("").toUpperCase();
+        const target = (this.currentWord || "").toUpperCase();
+
+        if (spelled === target && target.length > 0) {
             this.handleSolveVictory();
         } else {
-            this.dom.statusMessage.textContent = `Added [${elem.symbol}] ${elem.name}! Keep spelling!`;
-            this.dom.statusMessage.className = "success";
+            if (this.placedElements.length === 0) {
+                this.dom.statusMessage.textContent = "Enter elements to begin spelling!";
+                this.dom.statusMessage.className = "info";
+            } else if (target.startsWith(spelled)) {
+                this.dom.statusMessage.textContent = `Spelled "${spelled}"... matches so far!`;
+                this.dom.statusMessage.className = "success";
+            } else {
+                this.dom.statusMessage.textContent = `Placed elements spell "${spelled}". (Target: ${target})`;
+                this.dom.statusMessage.className = "info";
+            }
         }
     }
 
     handleUndo() {
         if (!this.isWordRevealed || this.isGameOver || this.placedElements.length === 0) return;
         const removed = this.placedElements.pop();
-        this.currentWordIndex -= removed.symbol.length;
 
         if (this.dom.undoBtn) this.dom.undoBtn.disabled = (this.placedElements.length === 0);
         this.renderTargetWord();
         this.renderElementSlots();
+        this.updateTrashCanState();
 
         this.dom.statusMessage.textContent = `Undid [${removed.symbol}] ${removed.name}.`;
         this.dom.statusMessage.className = "info";
+
+        this.checkSolveVictory();
 
         if (this.dom.elementInput) {
             this.dom.elementInput.focus();
@@ -1069,21 +1116,44 @@ class ElementSpellerGame {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    window.elementSpellerGame = new ElementSpellerGame();
-    window.elementleGame = window.elementSpellerGame;
-
-    // Register Service Worker for PWA & offline support (on http/https)
-    if ("serviceWorker" in navigator && (window.location.protocol === "http:" || window.location.protocol === "https:")) {
-        window.addEventListener("load", () => {
-            navigator.serviceWorker
-                .register("./sw.js")
-                .then((reg) => {
-                    console.log("Element-Speller Service Worker registered:", reg.scope);
-                })
-                .catch((err) => {
-                    console.log("Element-Speller Service Worker registration failed:", err);
-                });
-        });
+// Safe Boot: Works both on fresh load and when DOM is already complete/cached (macOS Dock PWA)
+function bootElementSpeller() {
+    if (window.elementSpellerGame) return;
+    try {
+        window.elementSpellerGame = new ElementSpellerGame();
+        window.elementleGame = window.elementSpellerGame;
+        console.log("Element-Speller initialized successfully.");
+    } catch (err) {
+        console.error("Failed to start Element-Speller:", err);
+        const badge = document.getElementById("puzzle-meta-badge");
+        if (badge) badge.textContent = "Error loading puzzle. Please refresh!";
     }
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootElementSpeller);
+} else {
+    bootElementSpeller();
+}
+
+// Register Service Worker for PWA offline & Dock capability
+if ("serviceWorker" in navigator && (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+    navigator.serviceWorker
+        .register("./sw.js", { scope: "./" })
+        .then((reg) => {
+            console.log("Element-Speller Service Worker registered with scope:", reg.scope);
+            reg.onupdatefound = () => {
+                const installing = reg.installing;
+                if (installing) {
+                    installing.onstatechange = () => {
+                        if (installing.state === "installed" && navigator.serviceWorker.controller) {
+                            console.log("New game assets cached in background.");
+                        }
+                    };
+                }
+            };
+        })
+        .catch((err) => {
+            console.warn("Element-Speller Service Worker registration failed:", err);
+        });
+}

@@ -1,30 +1,44 @@
 /**
  * Firebase Authentication Module
  * Handles Google Sign-In, Sign-Out, and Auth State subscriptions.
+ * Works seamlessly offline with dynamic imports.
  */
-import { auth, googleProvider } from './firebase-config.js';
-import { 
-    signInWithPopup, 
-    signOut, 
-    onAuthStateChanged 
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirebaseServices } from './firebase-config.js';
 
 const authListeners = new Set();
 let currentAuthUser = null;
 let isInitialized = false;
 
-// Track Auth State changes
-onAuthStateChanged(auth, (user) => {
-    currentAuthUser = user;
-    isInitialized = true;
-    authListeners.forEach(listener => {
-        try {
-            listener(user);
-        } catch (err) {
-            console.error("Error in auth state listener:", err);
-        }
-    });
-});
+// Initialize auth state listener asynchronously
+(async function initAuth() {
+    const services = await getFirebaseServices();
+    if (!services || !services.isAvailable || !services.auth) {
+        isInitialized = true;
+        authListeners.forEach(listener => {
+            try { listener(null); } catch (e) { console.error(e); }
+        });
+        return;
+    }
+
+    try {
+        const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+        onAuthStateChanged(services.auth, (user) => {
+            currentAuthUser = user;
+            isInitialized = true;
+            authListeners.forEach(listener => {
+                try {
+                    listener(user);
+                } catch (err) {
+                    console.error("Error in auth state listener:", err);
+                }
+            });
+        });
+    } catch (err) {
+        console.warn("Could not bind auth listener:", err);
+        isInitialized = true;
+        authListeners.forEach(cb => cb(null));
+    }
+})();
 
 /**
  * Register a listener for authentication state changes.
@@ -47,7 +61,7 @@ export function onAuthChange(callback) {
  * Get the currently logged-in user
  */
 export function getCurrentUser() {
-    return currentAuthUser || auth.currentUser;
+    return currentAuthUser;
 }
 
 /**
@@ -67,8 +81,15 @@ export function getUserProfile(user = getCurrentUser()) {
  * Sign in with Google Popup
  */
 export async function signInWithGoogle() {
+    const services = await getFirebaseServices();
+    if (!services || !services.isAvailable || !services.auth) {
+        alert("Google Sign-In is unavailable offline. Please check your internet connection and try again.");
+        return null;
+    }
+
     try {
-        const result = await signInWithPopup(auth, googleProvider);
+        const { signInWithPopup } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+        const result = await signInWithPopup(services.auth, services.googleProvider);
         return result.user;
     } catch (error) {
         handleAuthError(error);
@@ -80,8 +101,12 @@ export async function signInWithGoogle() {
  * Sign out current user
  */
 export async function signOutUser() {
+    const services = await getFirebaseServices();
+    if (!services || !services.isAvailable || !services.auth) return;
+
     try {
-        await signOut(auth);
+        const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+        await signOut(services.auth);
     } catch (error) {
         console.error("Error signing out:", error);
         throw error;
@@ -255,4 +280,3 @@ export function setupAuthUI(containerId = 'auth-container') {
         }
     });
 }
-

@@ -1,11 +1,15 @@
 {
-  "name": "Element-Speller",
+  "name": "Element-Speller — Daily Word Puzzle",
   "short_name": "Element-Speller",
   "description": "Daily chemical word puzzle game created by Amit Joshi (@amitjoshi2724). Spell words using Periodic Table element symbols as fast as you can!",
+  "id": "./",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "orientation": "any",
+  "background_color": "#f0f8ff",
   "theme_color": "#4b0082",
+  "categories": ["games", "puzzle", "education"],
   "icons": [
     {
       "src": "favicon.ico",
