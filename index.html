@@ -33,9 +33,14 @@
             <a href="query/index.html" class="nav-action-btn" title="Spell any custom phrase with elements">
                 <span>🔍 Custom Speller</span>
             </a>
-            <button id="toggle-mode-btn" class="nav-action-btn" title="Switch to unlimited practice words">
-                <span>♾️ Practice Mode</span>
-            </button>
+            <div class="mode-segmented-toggle" role="group" aria-label="Game Mode">
+                <button type="button" id="mode-daily-btn" class="mode-toggle-btn active" data-mode="daily">
+                    <span class="mode-icon">📅</span> Daily
+                </button>
+                <button type="button" id="mode-practice-btn" class="mode-toggle-btn" data-mode="practice">
+                    <span class="mode-icon">🎯</span> Practice
+                </button>
+            </div>
             <button id="open-archive-btn" class="nav-action-btn" title="Browse calendar archive of past daily puzzles">
                 <span>📅 Archive</span>
             </button>

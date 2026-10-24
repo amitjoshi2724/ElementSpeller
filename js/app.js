@@ -45,8 +45,22 @@ class ElementSpellerGame {
         this.initEventListeners();
         this.setupArchiveTabs();
         setupAuthUI("auth-container");
-        this.startPuzzle(this.todayStr);
+        this.checkURLParamsAndStorage();
+        if (this.isPractice) {
+            this.startPuzzle(null, true);
+        } else {
+            this.startPuzzle(this.currentDateStr || this.todayStr, false);
+        }
         this.startMidnightCountdown();
+
+        window.addEventListener("popstate", () => {
+            this.checkURLParamsAndStorage();
+            if (this.isPractice) {
+                this.startPuzzle(null, true);
+            } else {
+                this.startPuzzle(this.currentDateStr || this.todayStr, false);
+            }
+        });
 
         // Ensure Ko-fi widget renders cleanly at bottom
         setTimeout(() => {
@@ -77,6 +91,8 @@ class ElementSpellerGame {
     initDOM() {
         this.dom = {
             puzzleTitle: document.getElementById("puzzle-meta-badge"),
+            modeDailyBtn: document.getElementById("mode-daily-btn"),
+            modePracticeBtn: document.getElementById("mode-practice-btn"),
             targetWordDisplay: document.getElementById("target-word-display"),
             elementSlotsRow: document.getElementById("element-slots-row"),
             elementInput: document.getElementById("element-input"),
@@ -227,14 +243,18 @@ class ElementSpellerGame {
             });
         }
 
+        // Segmented Daily vs Practice Toggle
+        if (this.dom.modeDailyBtn) {
+            this.dom.modeDailyBtn.addEventListener("click", () => this.setGameMode(false));
+        }
+        if (this.dom.modePracticeBtn) {
+            this.dom.modePracticeBtn.addEventListener("click", () => this.setGameMode(true));
+        }
+
         const toggleBtn = document.getElementById("toggle-mode-btn");
         if (toggleBtn) {
             toggleBtn.addEventListener("click", () => {
-                this.isPractice = !this.isPractice;
-                toggleBtn.innerHTML = this.isPractice
-                    ? "<span>📅 Daily Mode</span>"
-                    : "<span>♾️ Practice Mode</span>";
-                this.startPuzzle(this.isPractice ? null : this.todayStr, this.isPractice);
+                this.setGameMode(!this.isPractice);
             });
         }
 
@@ -283,6 +303,92 @@ class ElementSpellerGame {
         });
     }
 
+
+    checkURLParamsAndStorage() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dateParam = urlParams.get("date");
+            const modeParam = urlParams.get("mode");
+
+            if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+                this.currentDateStr = dateParam;
+                this.isPractice = false;
+            } else if (modeParam === "practice" || modeParam === "unlimited") {
+                this.isPractice = true;
+            } else if (modeParam === "daily") {
+                this.isPractice = false;
+            } else {
+                const savedMode = localStorage.getItem("elementspeller_game_mode");
+                this.isPractice = (savedMode === "practice" || savedMode === "unlimited");
+            }
+        } catch (e) {
+            console.warn("Storage/URL mode detection error:", e);
+            this.isPractice = false;
+        }
+        this.updateModeUI(false);
+    }
+
+    setGameMode(isPractice) {
+        if (this.isPractice === isPractice) {
+            if (isPractice) {
+                this.startPuzzle(null, true);
+            }
+            return;
+        }
+        this.isPractice = isPractice;
+        this.updateModeUI(true);
+        if (this.isPractice) {
+            this.startPuzzle(null, true);
+        } else {
+            this.startPuzzle(this.todayStr, false);
+        }
+    }
+
+    updateModeUI(updateURL = true) {
+        const modeDailyBtn = this.dom?.modeDailyBtn || document.getElementById("mode-daily-btn");
+        const modePracticeBtn = this.dom?.modePracticeBtn || document.getElementById("mode-practice-btn");
+
+        if (modeDailyBtn && modePracticeBtn) {
+            if (this.isPractice) {
+                modeDailyBtn.classList.remove("active");
+                modePracticeBtn.classList.add("active");
+            } else {
+                modeDailyBtn.classList.add("active");
+                modePracticeBtn.classList.remove("active");
+            }
+        }
+
+        // Persist mode to localStorage
+        try {
+            localStorage.setItem("elementspeller_game_mode", this.isPractice ? "practice" : "daily");
+        } catch (e) {
+            // ignore localStorage quota/privacy error
+        }
+
+        // Sync URL query params via replaceState
+        if (updateURL && window.history && window.history.replaceState) {
+            try {
+                const url = new URL(window.location.href);
+                if (this.isPractice) {
+                    url.searchParams.set("mode", "practice");
+                    url.searchParams.delete("date");
+                } else {
+                    url.searchParams.delete("mode");
+                    if (this.currentDateStr && this.currentDateStr !== this.todayStr) {
+                        url.searchParams.set("date", this.currentDateStr);
+                    } else {
+                        url.searchParams.delete("date");
+                    }
+                }
+                const newSearch = url.searchParams.toString();
+                const newPath = url.pathname + (newSearch ? `?${newSearch}` : "");
+                window.history.replaceState(null, "", newPath);
+            } catch (e) {
+                console.warn("Error updating URL history state:", e);
+            }
+        }
+    }
+
     startPuzzle(dateStr, isPractice = false) {
         this.isPractice = isPractice;
         this.isGameOver = false;
@@ -315,6 +421,8 @@ class ElementSpellerGame {
                 : `📅 Past Puzzle #${this.puzzleNumber} • ${dateStr}`;
             this.dom.modeTitle.textContent = `🧪 Element-Speller #${this.puzzleNumber}`;
         }
+
+        this.updateModeUI(true);
 
         // Render target word and dynamic element slots
         this.renderTargetWord();
